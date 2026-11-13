@@ -118,8 +118,8 @@ select t_ok(jsonb_array_length(ind_unlock('2026-11-11', 'اختبار الإلغ
 
 -- 10) التأخر: حساب الدقائق، السبب الإلزامي، «سبب آخر»، البحث، ومنع التكرار
 select t_as(4);
-select t_ok(ind_late_minutes('07:18') = 8, 'وصول 7:18 = 8 دقائق (بداية الاحتساب 7:10)');
-select t_ok(ind_late_minutes('07:09') = 0, 'قبل حد التأخر لا يحتسب');
+reset role; select t_ok(ind_late_minutes('07:18') = 8, 'وصول 7:18 = 8 دقائق (بداية الاحتساب 7:10)');
+select t_ok(ind_late_minutes('07:09') = 0, 'قبل حد التأخر لا يحتسب'); set role authenticated;
 select t_ok(jsonb_array_length(ind_student_search('طالب', 'lateness')) = 6, 'البحث المباشر في فصول التأخر المسندة فقط');
 select t_ok(jsonb_array_length(ind_student_search('107', 'lateness')) = 0, 'لا نتائج لطالب خارج الإسناد');
 select t_ok(t_err(format($$select ind_record_lateness('00000000-0000-0000-0000-000000000501', '2026-11-12', '07:18', '%s')$$, t_reason(true))) = 'other_reason_required', 'رسالة «سبب آخر» الإلزامي');
@@ -139,7 +139,7 @@ select t_as(4);
 select t_ok(ind_set_lateness_settings('{"day_start":"07:00","late_after":"07:15"}')->>'error' = 'forbidden', 'مدخل التأخر لا يغير الإعدادات');
 select t_as(1);
 select ind_set_lateness_settings('{"day_start":"07:00","late_after":"07:15","grace_minutes":0,"calc_mode":"from_threshold"}');
-select t_ok(ind_late_minutes('07:18') = 3, 'الحساب يتبع الإعداد الجديد');
+reset role; select t_ok(ind_late_minutes('07:18') = 3, 'الحساب يتبع الإعداد الجديد'); set role authenticated;
 select t_ok(exists (select 1 from jsonb_array_elements(ind_audit_list(50, 'settings')) e where e->>'action' = 'lateness_settings_changed' and e->'old'->>'late_after' = '07:10'), 'سجل تغيير الإعدادات بالقيمة السابقة');
 select ind_set_lateness_settings('{"day_start":"07:00","late_after":"07:10"}');
 select t_ok((ind_reason_save(null, 'سبب جديد'))->>'ok' = 'true', 'إضافة سبب تأخر');
@@ -173,4 +173,11 @@ select t_ok((select count(*) from ind_audit_logs where action = 'access_denied')
 select t_ok(t_err('update ind_audit_logs set action = $$x$$') = 'audit_immutable', 'سجل العمليات غير قابل للتعديل');
 select t_ok(t_err('delete from ind_audit_logs') = 'audit_immutable', 'سجل العمليات غير قابل للحذف');
 select t_ok((select count(*) from ind_attendance_records where day = '2026-11-12') = 2 and (select count(distinct (student_id, day)) from ind_attendance_records) = (select count(*) from ind_attendance_records), 'لا تكرار لسجل الطالب في اليوم');
+
+-- 15) الدوال الداخلية مغلقة أمام الاستدعاء المباشر (0302)
+set role authenticated; select t_as(2);
+select t_ok(t_err($$select * from ind_section_students('00000000-0000-0000-0000-00000000c003', '2026-11-12')$$) like 'permission denied%', 'لا قراءة مباشرة لطلاب فصل عبر الدالة الداخلية');
+select t_ok(t_err($$select ind_deny('x')$$) like 'permission denied%', 'لا كتابة سجلات وهمية عبر ind_deny');
+reset role;
+\echo HARDENING_PASSED
 \echo ALL_TESTS_PASSED
