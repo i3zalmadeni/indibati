@@ -30,3 +30,5 @@ alter table public.student_enrollments enable row level security;
 alter table public.class_sections enable row level security;
 alter table public.staff_members enable row level security;
 grant usage on schema public to authenticated, anon;
+create table public.systems (code text primary key, name_ar text, description text, status text check (status in ('planned','connected','suspended')), api_key_hash text, last_seen_at timestamptz, created_at timestamptz default now(), scopes text[]);
+create table public.permissions (code text primary key, system_code text references public.systems, level text check (level in ('view','add','edit','approve')), name_ar text);
