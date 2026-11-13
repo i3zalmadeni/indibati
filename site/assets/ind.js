@@ -124,7 +124,7 @@ function sectionPicker(host, meta, { withDay = true, day, section, onChange } = 
   if (meta.sections.length === 1 && !sel) s.value = meta.sections[0].id;
   const fire = () => { hint(); onChange && onChange({ grade: g.value, section: s.value, day: d ? d.value : null }); };
   g.onchange = () => { fill(); fire(); }; s.onchange = fire; if (d) d.onchange = fire;
-  hint(); return { get: () => ({ grade: g.value, section: s.value, day: d ? d.value : null }), fire };
+  hint(); return { get: () => ({ grade: g.value, section: s.value, day: d ? d.value : null }), fire, set: (id) => { const x = meta.sections.find((y) => y.id === id); if (!x) return; g.value = x.grade; fill(); s.value = id; fire(); } };
 }
 
 // ===== البحث المباشر عن طالب =====

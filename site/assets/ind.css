@@ -91,3 +91,16 @@
 .gp .hd svg{width:52px;height:52px}
 .abs-l{list-style:none;padding:0;margin:0;display:grid;gap:8px}
 .abs-l li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface)}
+
+.atgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:10px}
+.at-c{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:16px;color:#fff;box-shadow:0 6px 14px rgba(20,40,60,.14);transition:transform .2s,box-shadow .2s;font-family:inherit}
+.at-c:hover{transform:translateY(-2px)}.at-c:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.at-c.cur{outline:3px solid var(--ink);outline-offset:2px}
+.at-c.at-none{background:linear-gradient(145deg,#96a2af,#667381)}
+.at-c.at-saved{background:linear-gradient(145deg,#3f8fd6,#2a62a8)}
+.at-c.at-locked{background:linear-gradient(145deg,#27ae6f,#14794a)}
+.at-c b{font-size:1rem}.at-c small{opacity:.92}
+.at-c .stb{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.22);border-radius:99px;padding:3px 10px;font-size:.78rem;font-weight:700}
+.at-c .stb .ico{width:14px;height:14px}
+.lg.at-none i{background:#7d8996}.lg.at-saved i{background:#2f74c0}.lg.at-locked i{background:#1f9d63}
+.lgd .lg:not(button){cursor:default}

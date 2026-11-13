@@ -54,12 +54,23 @@ PAGES.attendance = () => boot("attendance.html", async (main, c) => {
   const meta = await rpc("ind_meta", { p_task: c.oversee ? "view" : "absence" });
   if (!meta.sections.length) { main.innerHTML = empty("users", "لا فصول مسندة إليك لتسجيل الغياب", "راجع منسق الغياب لإسناد فصولك."); return; }
   const qs = new URLSearchParams(location.search);
-  main.innerHTML = `<div class="card"><div id="pick"></div><div id="body">${empty("check", "اختر الفصل لعرض قائمة الطلاب", "يظهر جميع الطلاب «حاضرين»، وتحدد الغائبين فقط.")}</div></div>`;
-  let state = null, dirty = false;
+  main.innerHTML = `<div class="card"><div id="pick"></div><div id="cls" class="mt"></div></div><div class="card mt"><div id="body">${empty("check", "اختر الفصل لعرض قائمة الطلاب", "يظهر جميع الطلاب «حاضرين»، وتحدد الغائبين فقط.")}</div></div>`;
+  let state = null, dirty = false, cardsDay = null, cardSeq = 0;
+  const AT = { none: ["x", "لم يُحضَّر"], saved: ["clock", "حُضِّر · بانتظار التثبيت"], locked: ["lock", "مثبت"] };
+  const loadCards = async (day) => {
+    cardsDay = day; const my = ++cardSeq, host = $("#cls");
+    if (!day || (meta.attendance?.weekend || []).includes(dow(day))) { host.innerHTML = ""; return; }
+    let rows; try { rows = await rpc("ind_day_status", { p_day: day, p_grade: null }); } catch (_) { host.innerHTML = ""; return; }
+    if (my !== cardSeq) return;
+    const k = (r) => (r.locked ? "locked" : r.saved ? "saved" : "none"), n = (x) => rows.filter((r) => k(r) === x).length, cur = picker.get().section;
+    host.innerHTML = rows.length ? `<div class="lgd" role="group" aria-label="حالة التحضير">${["none", "saved", "locked"].map((x) => `<span class="lg at-${x}"><i></i>${AT[x][1]}<b>${n(x)}</b></span>`).join("")}</div>
+      <div class="atgrid">${rows.map((r) => { const x = k(r); return `<button type="button" class="at-c at-${x} ${r.id === cur ? "cur" : ""}" data-id="${r.id}" aria-label="${esc(r.label)} — ${AT[x][1]}"><b>${esc(r.label)}</b><span class="stb">${ico(AT[x][0])}${AT[x][1]}</span><small>${r.students} طالب${r.saved ? ` · غائب ${r.excused + r.unexcused}` : ""}</small></button>`; }).join("")}</div>` : "";
+    $$(".at-c", host).forEach((b) => (b.onclick = () => { if (dirty && !confirm("لديك تغييرات لم تُحفظ. هل تريد تجاهلها؟")) return; picker.set(b.dataset.id); }));
+  };
   const body = $("#body");
   window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
   const picker = sectionPicker($("#pick"), meta, { day: qs.get("d"), section: qs.get("s"), onChange: (v) => {
-    if (dirty && !confirm("لديك تغييرات لم تُحفظ. هل تريد تجاهلها؟")) return; load(v); } });
+    if (dirty && !confirm("لديك تغييرات لم تُحفظ. هل تريد تجاهلها؟")) return; if (v.day !== cardsDay) loadCards(v.day); else $$(".at-c").forEach((b) => b.classList.toggle("cur", b.dataset.id === v.section)); load(v); } });
   const counts = () => { const n = { present: 0, absent_excused: 0, absent_unexcused: 0 }; state.students.forEach((s) => n[s.status]++); return n; };
   const paintTally = () => { const n = counts(); $("#tally").innerHTML = `<span>الإجمالي <b class="mono">${state.students.length}</b></span><span class="p">حاضر <b class="mono">${n.present}</b></span><span class="e">غائب بعذر <b class="mono">${n.absent_excused}</b></span><span class="u">غائب بدون عذر <b class="mono">${n.absent_unexcused}</b></span>`;
     $("#dirty").textContent = dirty ? "تغييرات لم تُحفظ" : state.saved ? `حُفظ ${fmtT(state.saved_at)}${state.saved_by ? " · " + state.saved_by : ""}` : "لم يُحفظ تحضير هذا الفصل بعد"; $("#dirty").className = dirty ? "dirty" : "sub"; };
@@ -96,7 +107,7 @@ PAGES.attendance = () => boot("attendance.html", async (main, c) => {
         dirty = false;
         if (andLock) { const l = await rpc("ind_lock", { p_day: state.day, p_scope: "list", p_sections: [state.section.id] }); toast(l.locked.length ? "حُفظ التحضير وثُبّت" : "حُفظ التحضير"); }
         else toast(`حُفظ التحضير · ${r.absent} غائب`);
-        await load({ section: state.section.id, day: state.day });
+        await load({ section: state.section.id, day: state.day }); loadCards(state.day);
       } catch (e) { toast(mapErr(e), true); } finally { btns.forEach((b) => (b.disabled = false)); }
     };
     const sv = $("#save"); if (sv) sv.onclick = () => doSave(false);
