@@ -34,11 +34,19 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
         <p class="sub"><span class="badge">الأزرق: غياب</span> <span class="badge warn">الذهبي: تأخر</span></p>
         <h3 class="sec">أكثر أسباب التأخر (أسبوع)</h3>${d.top_reasons.length ? d.top_reasons.map((r) => `<div class="row2"><span>${esc(r.name)}</span><b class="mono">${r.count}</b></div>`).join("") : '<p class="sub">لا حالات تأخر.</p>'}</div>
     </div>
+    <div id="dx"></div>
     <h3 class="sec">الغياب حسب الفصل</h3><div class="tw"><table class="tbl"><thead><tr><th>الفصل</th><th>الطلاب</th><th>بعذر</th><th>بدون عذر</th><th>التحضير</th><th>التثبيت</th></tr></thead><tbody>
     ${d.sections.map((s) => `<tr><td><a href="attendance.html?s=${s.id}&d=${day}">${esc(s.label)}</a></td><td class="mono">${s.students}</td><td class="mono">${s.excused}</td><td class="mono">${s.unexcused}</td><td>${s.saved ? '<span class="badge ok">محفوظ</span>' : '<span class="badge warn">لم يُحفظ</span>'}</td><td>${lockBadge(s.locked)}</td></tr>`).join("")}</tbody></table></div>`;
   }
   if (!html) html = empty("inbox", "لا مهام مسندة إليك في انضباطي", "يُسند منسق الغياب فصول تسجيل الغياب أو التأخر من «إدارة التكليفات». راجعه إن كنت مكلفاً.");
   main.innerHTML = html;
+  if (c.oversee) { try { const x = await rpc("ind_dashboard_extra");
+    $("#dx").innerHTML = `<div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <a class="card" href="excuses.html" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.excuses_new}</b><br><span class="sub">عذر جديد بانتظار المراجعة</span></a>
+      <a class="card" href="notifications.html?tab=log" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.notif_queued} · ${x.notif_failed}</b><br><span class="sub">رسالة معلقة · فاشلة</span></a>
+      <a class="card" href="escalations.html" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.escalations_active}</b><br><span class="sub">${x.rules_active ? "إجراء نظامي لم يُطبع" : "الإجراءات النظامية غير مفعّلة"}</span></a>
+      <div class="card"><b>الأكثر غياباً</b>${x.top_absent.slice(0, 3).map((s) => `<div class="row2"><a href="student.html?id=${s.id}">${esc(s.name)}</a><b class="mono">${s.n}</b></div>`).join("") || '<p class="sub">—</p>'}</div>
+      <div class="card"><b>الأكثر تأخراً</b>${x.top_late.slice(0, 3).map((s) => `<div class="row2"><a href="student.html?id=${s.id}">${esc(s.name)}</a><b class="mono">${s.n}</b></div>`).join("") || '<p class="sub">—</p>'}</div></div>`; } catch (_) {} }
 });
 
 // ============================== التحضير اليومي ==============================
@@ -262,7 +270,7 @@ PAGES.assignments = () => boot("assignments.html", async (main) => {
 // ============================== الإعدادات ==============================
 PAGES.settings = () => boot("settings.html", async (main, c) => {
   const list = [];
-  if (c.isCoord) list.push(["late", "إعدادات التأخر", "clock"], ["reasons", "أسباب التأخر", "list"], ["att", "إعدادات التحضير", "check"]);
+  if (c.isCoord) list.push(["late", "إعدادات التأخر", "clock"], ["reasons", "أسباب التأخر", "list"], ["att", "إعدادات التحضير", "check"], ["exc", "الأعذار", "file"]);
   if (c.isPortal || c.isAdmin) list.push(["roles", "الأدوار", "users"]);
   if (!list.length) { main.innerHTML = empty("gear", "لا إعدادات متاحة لدورك", ""); return; }
   tabs(main, list, async (k, body) => {
@@ -297,6 +305,14 @@ PAGES.settings = () => boot("settings.html", async (main, c) => {
         <label>أيام الإجازة الأسبوعية</label><div>${days.map((d, i) => `<label class="chk"><input type="checkbox" value="${i}" ${A.weekend.includes(i) ? "checked" : ""}>${d}</label>`).join("")}</div>
         <div class="acts mt"><button class="btn" id="sv">حفظ</button></div></div>`;
       $("#sv").onclick = async () => { try { await rpc("ind_set_attendance_settings", { p: { max_backdate_days: +$("#bd").value, weekend: $$("input[type=checkbox]:checked", body).map((x) => +x.value) } }); toast("حُفظت الإعدادات"); } catch (e) { toast(mapErr(e), true); } };
+    }
+    if (k === "exc") {
+      const E = (await rpc("ind_settings_get")).excuses;
+      body.innerHTML = `<div class="card"><label class="chk"><input type="checkbox" id="e1" ${E.attachment_required ? "checked" : ""}>إرفاق ملف العذر إلزامي</label>
+        <div class="fg"><div><label for="e2">مهلة تقديم العذر بعد يوم الغياب (يوماً)</label><input type="number" id="e2" min="1" max="120" value="${+E.max_days_after}"></div>
+        <div><label for="e3">صلاحية رابط ولي الأمر (يوماً)</label><input type="number" id="e3" min="1" max="120" value="${+E.link_valid_days}"></div></div>
+        <div class="acts mt"><button class="btn" id="sv">حفظ</button></div></div>`;
+      $("#sv").onclick = async () => { try { await rpc("ind_set_excuse_settings", { p: { attachment_required: $("#e1").checked, max_days_after: +$("#e2").value, link_valid_days: +$("#e3").value } }); toast("حُفظت الإعدادات"); } catch (e) { toast(mapErr(e), true); } };
     }
     if (k === "roles") {
       const S = await rpc("ind_staff_list");

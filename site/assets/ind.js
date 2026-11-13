@@ -55,6 +55,12 @@ const ERR = {
   late_before_start: "بداية احتساب التأخر يجب أن تكون بعد بداية الدوام.",
   no_sections: "لا فصول في النطاق المحدد.",
   not_found: "السجل غير موجود.", bad_request: "طلب غير صحيح.",
+  already_decided: "صدر قرار نهائي في هذا العذر.", not_allowed: "الإجراء غير متاح في حالة الرسالة الحالية.",
+  students_required: "حدد طالباً واحداً على الأقل.", too_many: "العدد كبير جداً في دفعة واحدة.",
+  invalid_link: "الرابط غير صالح أو انتهت صلاحيته. اطلب رابطاً جديداً من المدرسة.",
+  no_absence_that_day: "لا يوجد غياب مسجل لهذا التاريخ.", excuse_too_late: "انتهت المدة المسموحة لتقديم العذر لهذا اليوم.",
+  attachment_required: "إرفاق ملف العذر مطلوب.", too_many_files: "ثلاثة مرفقات كحد أقصى.", excuse_exists: "سبق تقديم عذر لهذا اليوم.",
+  attachment_invalid: "مرفق غير صالح.",
 };
 const mapErr = (e) => { const m = e?.message || String(e); return ERR[m] || (/permission denied|row-level security/i.test(m) ? ERR.forbidden : /Failed to fetch|NetworkError/i.test(m) ? "تعذر الاتصال بالخادم. تحقق من الشبكة." : m); };
 async function rpc(fn, args) {
@@ -88,10 +94,19 @@ Object.assign(ICONS, {
   unlock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 017.5-2"/>',
   print: '<path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z"/>',
   file: '<path d="M14 3H6v18h12V7zM14 3v4h4"/>',
+  flag: '<path d="M5 21V4M5 4h12l-2.500 4 2.500 4H5"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
+  send: '<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>',
 });
 const STATUS = { present: "حاضر", absent_excused: "غائب بعذر", absent_unexcused: "غائب بدون عذر" };
 const TASK = { absence: "تسجيل الغياب", lateness: "تسجيل التأخر" };
 const ROLE = { coordinator: "منسق الغياب", affairs: "شؤون الطلاب", portal_admin: "مدير البوابة" };
+const FN = (name) => APP_CONFIG.supabaseUrl + "/functions/v1/" + name;
+const EXC = { submitted: ["عذر مقدم", "info"], under_review: ["قيد المراجعة", "warn"], approved: ["معتمد", "ok"], rejected: ["غير معتمد", "bad"] };
+const NST = { queued: ["بانتظار الإرسال", "warn"], sending: ["قيد الإرسال", "warn"], no_phone: ["لا يوجد رقم", "bad"], sent: ["قبلها واتساب", "info"], delivered: ["وصلت", "ok"], read: ["قُرئت", "ok"], failed: ["فشل الإرسال", "bad"], cancelled: ["ملغاة", ""] };
+const NKIND = { absence: "إشعار غياب", lateness: "إشعار تأخر", lateness_repeat: "تكرار التأخر", escalation: "إجراء نظامي", excuse_received: "استلام عذر", excuse_result: "نتيجة العذر" };
+const badge = (m, k) => { const [t, c] = m[k] || [k, ""]; return `<span class="badge ${c}">${esc(t)}</span>`; };
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast("نُسخ"); } catch (_) { prompt("انسخ الرابط:", t); } }
 const lockBadge = (on) => `<span class="lockst ${on ? "on" : "off"}">${ico(on ? "lock" : "unlock")}${on ? "مثبت" : "غير مثبت"}</span>`;
 
 // ===== اختيار الصف ثم الفصل ثم التاريخ (المرحلة واحدة: المتوسطة) =====
@@ -141,12 +156,16 @@ function exportCSV(name, headers, rows) {
 // r: all | absence | lateness | coord | admin(portal) | oversee
 const NAV = [
   ["dashboard.html", "الرئيسية", "grid", "ملخص اليوم ومهامك", "all"],
-  ["attendance.html", "التحضير اليومي", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence"],
+  ["attendance.html", "التحضير", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence"],
   ["locks.html", "التثبيت", "lock", "حالة التحضير والتثبيت لكل فصل وتاريخ", "absence"],
   ["lateness.html", "التأخر", "clock", "تسجيل حالات التأخر الصباحي ومتابعتها", "lateness"],
-  ["assignments.html", "إدارة التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord"],
+  ["excuses.html", "الأعذار", "file", "أعذار الغياب المقدمة من أولياء الأمور ومراجعتها", "oversee"],
+  ["student.html", "الملفات", "user", "سجل الطالب التراكمي: الغياب والتأخر والأعذار والإشعارات والإجراءات", "oversee"],
+  ["notifications.html", "الإشعارات", "bell", "رسائل أولياء الأمور عبر واتساب: الإعداد والإرسال والمتابعة", "oversee"],
+  ["escalations.html", "الإجراءات", "flag", "إشعارات الغياب النظامية وحدودها وطباعتها", "oversee"],
+  ["assignments.html", "التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord"],
   ["settings.html", "الإعدادات", "gear", "إعدادات التأخر والتحضير والأسباب والأدوار", "admin"],
-  ["audit.html", "سجل العمليات", "list", "كل عملية مسجلة بالمستخدم والوقت والقيم السابقة والجديدة", "admin"],
+  ["audit.html", "السجل", "list", "كل عملية مسجلة بالمستخدم والوقت والقيم السابقة والجديدة", "admin"],
 ];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
@@ -164,9 +183,10 @@ async function boot(page, render, o = {}) {
     absence: who.is_coord || tasks.has("absence"), lateness: who.is_coord || tasks.has("lateness"), oversee: who.is_coord || who.is_affairs,
     role: who.is_coord ? (who.is_admin ? "مدير النواة الرقمية" : "منسق الغياب") : who.is_affairs ? "شؤون الطلاب" : who.is_portal_admin ? "مدير البوابة" : tasks.size ? "مدخل بيانات" : "منسوب" };
   window.__ind = ctx;
-  const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
+  const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
-  const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
+  const FULL = { "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات" };
+  const cur0 = NAV.find((n) => n[0] === page), cur = cur0 ? [cur0[0], FULL[page] || cur0[1], cur0[2], cur0[3]] : [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>

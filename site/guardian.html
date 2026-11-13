@@ -1,0 +1,65 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>بوابة ولي الأمر – انضباطي</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/ui.css"><link rel="stylesheet" href="assets/ind.css"></head>
+<body class="pubsite"><div id="hdr"></div>
+<main class="gp" id="gp"><p class="sub" style="text-align:center;margin:40px">جارٍ التحميل…</p></main>
+<div id="ftr"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/config.js"></script><script src="assets/chrome.js"></script><script src="assets/ind.js"></script>
+<script>
+// بوابة ولي الأمر: تعمل برابط آمن خاص بالطالب، دون حساب أو كلمة مرور.
+// تعرض بيانات الطالب صاحب الرابط فقط (تتحقق القاعدة من الرمز في كل طلب)، ولا تغيّر السجل الرسمي.
+pubInit("guardian.html");
+(async () => {
+  const gp = $("#gp");
+  // الرمز من الرابط ثم يُزال من شريط العنوان كي لا يبقى في السجل أو يُشارك بالخطأ
+  let token = new URLSearchParams(location.search).get("t") || sessionStorage.getItem("ind_gt") || "";
+  if (token) { try { sessionStorage.setItem("ind_gt", token); } catch (_) {} history.replaceState(null, "", location.pathname); }
+  const bad = (m) => (gp.innerHTML = `<div class="card" style="text-align:center"><h2>بوابة ولي الأمر</h2><p class="err">${esc(m)}</p><p class="sub">إن احتجت إلى رابط جديد فتواصل مع المدرسة.</p></div>`);
+  if (!/^[0-9a-f]{64}$/.test(token)) return bad("الرابط غير صالح.");
+  const load = async () => {
+    let d; try { d = await rpc("ind_g_portal", { p_token: token }); } catch (e) { return bad(mapErr(e)); }
+    const s = d.student, ab = d.absences, E = d.settings || {}; window.__gE = E;
+    const exc = ab.filter((a) => a.status === "absent_excused").length;
+    const canExcuse = (a) => (!a.excuse || a.excuse.status === "rejected") && (new Date(d.today) - new Date(a.day)) / 864e5 <= (+E.max_days_after || 14);
+    gp.innerHTML = `<div class="card"><div class="hd">${CORE_ICON}<div><h2 style="margin:0">${esc(s.name)}</h2><p class="sub" style="margin:2px 0">${esc(s.grade || "")} – ${esc(s.section || "")} · مدرسة لبيد بن ربيعة المتوسطة</p></div></div>
+        <div class="tally"><span class="e">غياب بعذر <b class="mono">${exc}</b></span><span class="u">غياب بدون عذر <b class="mono">${ab.length - exc}</b></span><span>تأخر <b class="mono">${d.lateness.length}</b></span></div>
+        <p class="sub" style="margin:0">الرابط صالح حتى ${esc(fmtT(d.expires_at))}. لا تشاركه مع غيرك.</p></div>
+      <div class="card mt"><h3 class="sec" style="margin-top:0">أيام الغياب</h3>${ab.length ? `<ul class="abs-l">${ab.map((a, i) => `<li><span><b>${esc(fmtDay(a.day))}</b><br><small>${esc(fmtHijri(a.day))} · ${STATUS[a.status]}</small></span>
+          <span>${a.excuse ? badge(EXC, a.excuse.status) + (a.excuse.note && a.excuse.status === "rejected" ? `<br><small>${esc(a.excuse.note)}</small>` : "") : '<span class="badge">لم يُقدَّم عذر</span>'}
+          ${canExcuse(a) ? ` <button class="btn sm" data-i="${i}">تقديم عذر</button>` : ""}</span></li>`).join("")}</ul>` : '<p class="sub">لا يوجد غياب مسجل هذا العام. شكراً لحرصكم.</p>'}</div>
+      <div class="card mt"><h3 class="sec" style="margin-top:0">التأخر الصباحي</h3>${d.lateness.length ? `<div class="tw"><table class="tbl"><thead><tr><th>التاريخ</th><th>وقت الوصول</th><th>الدقائق</th><th>السبب</th></tr></thead><tbody>${d.lateness.map((l) => `<tr><td>${esc(fmtShortDay(l.day))}</td><td class="mono">${esc(fmtHM(l.arrival))}</td><td class="mono">${l.minutes}</td><td>${esc(l.reason)}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا تأخر مسجل.</p>'}</div>
+      ${d.notifications.length ? `<div class="card mt"><h3 class="sec" style="margin-top:0">الإشعارات</h3>${d.notifications.map((n) => `<div class="row2"><span>${esc(NKIND[n.kind] || n.kind)}</span><small>${esc(fmtT(n.at))}</small></div>`).join("")}</div>` : ""}`;
+    $$("[data-i]").forEach((b) => (b.onclick = () => form(ab[+b.dataset.i])));
+  };
+  const form = (a) => {
+    const req = uuid(), need = !!(window.__gE && window.__gE.attachment_required);
+    const md = modal(`<h3>عذر غياب يوم ${esc(fmtDay(a.day))}</h3>
+      <label for="gr">سبب الغياب *</label><select id="gr"><option value="">اختر</option>${["مرض أو مراجعة طبية", "ظرف عائلي", "سفر", "موعد رسمي", "سبب آخر"].map((x) => `<option>${x}</option>`).join("")}</select>
+      <label for="gd">شرح مختصر</label><textarea id="gd" maxlength="1000"></textarea>
+      <label for="gf">إرفاق ملف العذر (صورة أو PDF، حتى 5 ميجابايت، 3 ملفات كحد أقصى)</label><input type="file" id="gf" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>
+      <p class="err" id="ge" role="alert"></p><div class="acts mt"><button class="btn" id="ok">إرسال الطلب</button><button class="btn sec" id="no">رجوع</button></div>`);
+    $("#no", md.el).onclick = md.close;
+    $("#ok", md.el).onclick = async () => {
+      const e = $("#ge", md.el), files = [...$("#gf", md.el).files]; e.textContent = "";
+      if (!$("#gr", md.el).value) return (e.textContent = "اختر سبب الغياب.");
+      if (need && !files.length) return (e.textContent = "إرفاق ملف العذر مطلوب.");
+      if (files.length > 3) return (e.textContent = "ثلاثة ملفات كحد أقصى.");
+      if (files.some((f) => f.size > 5 * 1024 * 1024)) return (e.textContent = "حجم الملف يتجاوز 5 ميجابايت.");
+      const btn = $("#ok", md.el); btn.disabled = true; btn.textContent = "جارٍ الإرسال…";
+      try {
+        const paths = [];
+        for (const f of files) {
+          const fd = new FormData(); fd.append("token", token); fd.append("file", f);
+          const r = await fetch(FN("ind-guardian"), { method: "POST", body: fd, headers: { apikey: APP_CONFIG.supabaseKey } });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error({ file_type: "نوع الملف غير مسموح. أرسل صورة أو PDF.", file_too_large: "حجم الملف يتجاوز 5 ميجابايت.", rate_limited: "رُفعت ملفات كثيرة، حاول لاحقاً.", invalid_link: ERR.invalid_link }[j.error] || "تعذر رفع الملف.");
+          paths.push(j.path);
+        }
+        await rpc("ind_g_submit_excuse", { p_token: token, p_day: a.day, p_reason: $("#gr", md.el).value, p_details: $("#gd", md.el).value, p_paths: paths, p_request_id: req });
+        md.close(); toast("وصل طلبكم، وسيُراجع من المدرسة."); load();
+      } catch (err) { e.textContent = mapErr(err); btn.disabled = false; btn.textContent = "إرسال الطلب"; }
+    };
+  };
+  await load();
+})();
+</script></body></html>

@@ -11,6 +11,7 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
     const ctx = await br.newContext({ viewport: { width: w, height: h }, locale: "ar-SA", timezoneId: "Asia/Riyadh" });
     await ctx.route(/cdn\.jsdelivr\.net/, (r) => r.fulfill({ contentType: "text/javascript", body: MOCK }));
     await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+    await ctx.route(/supabase\.co\/functions\/v1\/(.*)/, async (r) => { const u = r.request().url().split("/functions/v1/")[1]; r.fulfill({ response: await r.fetch({ url: BASE + "/fn/" + u }) }); });
     await ctx.addInitScript((u) => { u ? localStorage.setItem("preview_user", u) : localStorage.removeItem("preview_user"); }, user);
     const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message + " @ " + (e.stack || "").split("\n").slice(1, 3).join(" "))); p.on("dialog", (d) => d.accept()); p.errs = errs; return p;
   };
@@ -88,6 +89,45 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   p = await open(U(7)); await p.goto(`${BASE}/dashboard.html`); await p.waitForTimeout(800);
   p = await open(null); await p.goto(`${BASE}/dashboard.html`); await p.waitForURL(/login/); ok(true, "الزائر يُحوَّل إلى الدخول"); await shot(p, "12-login");
   await p.goto(`${BASE}/index.html`); await shot(p, "13-index");
+  // 7) المرحلتان 5 و6: إشعارات الغياب، ورابط ولي الأمر، والعذر، والاعتماد، والملف، والإجراءات
+  p = await open(U(1));
+  await p.goto(`${BASE}/notifications.html?tab=compose`); await p.waitForSelector("#nd");
+  await p.fill("#nd", D); await p.dispatchEvent("#nd", "change"); await p.waitForSelector("#ca");
+  ok((await p.textContent("#nl")).includes("لا رقم"), "تمييز من لا رقم لولي أمره");
+  await p.check("#ca"); await shot(p, "15a-before-queue"); await p.click("#qq"); await p.click(".md #ok"); await p.waitForSelector(".toast");
+  ok((await p.textContent(".toast")).includes("بالطابور"), "إدراج إشعارات الغياب في الطابور");
+  await shot(p, "15-notify-compose");
+  await p.goto(`${BASE}/notifications.html?tab=log`); await p.waitForSelector("#ll table");
+  ok((await p.textContent("#ll")).includes("بانتظار الإرسال") && !(await p.textContent("#ll")).includes("قبلها واتساب"), "لا يُدّعى الإرسال قبل الربط");
+  await shot(p, "16-notify-log");
+  const sid = require("child_process").execFileSync("psql", ["-U", "postgres", "-d", "indibati_e2e", "-tAc", `select student_id from ind_attendance_records where day = '${D}' and student_id in (select student_id from student_guardians) order by student_id limit 1`], { encoding: "utf8" }).trim();
+  await p.goto(`${BASE}/student.html?id=${sid}`); await p.waitForSelector("#gl"); await p.click("#gl"); await p.waitForSelector(".md input[readonly]");
+  const link = await p.inputValue(".md input[readonly]"); ok(/guardian\.html\?t=[0-9a-f]{64}$/.test(link), "إنشاء رابط ولي الأمر الآمن");
+  await shot(p, "17-student-file");
+  const g = await open(null, 430, 1000);
+  await g.goto(`${BASE}/guardian.html?t=${link.split("?t=")[1]}`); await g.waitForSelector(".abs-l, .card");
+  ok(!(await g.url()).includes("?t="), "إزالة الرمز من شريط العنوان");
+  const hasAbs = await g.$("[data-i]");
+  if (hasAbs) {
+    await g.click("[data-i]"); await g.selectOption(".md #gr", { index: 1 }); await g.fill(".md #gd", "كان مريضاً");
+    await g.setInputFiles(".md #gf", { name: "excuse.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test") });
+    await g.click(".md #ok"); await g.waitForSelector(".toast"); ok((await g.textContent(".toast")).includes("وصل"), "ولي الأمر يقدم العذر بمرفق");
+  } else ok(false, "لا غياب للطالب في البوابة");
+  await shot(g, "18-guardian");
+  ok(g.errs.length === 0, "لا أخطاء JavaScript (ولي الأمر): " + g.errs.join(" | "));
+  const g2 = await open(null); await g2.goto(`${BASE}/guardian.html?t=${"0".repeat(64)}`); await g2.waitForSelector(".err"); ok((await g2.textContent(".err")).includes("غير صالح"), "رفض الرابط غير الصالح");
+  await p.goto(`${BASE}/excuses.html`); await p.waitForSelector("[data-o]"); await p.click("[data-o]"); await p.waitForSelector(".md [data-d=approved]");
+  await shot(p, "19-excuse-review"); await p.click(".md [data-d=approved]"); await p.waitForSelector(".toast");
+  await p.goto(`${BASE}/student.html?id=${sid}`); await p.waitForSelector(".kgrid");
+  ok((await p.textContent(".kgrid")).includes("1غياب بعذر") || (await p.$eval(".kgrid .kpi.k3 b", (b) => b.textContent)) === "1", "الاعتماد يحدّث التصنيف في الملف");
+  await p.goto(`${BASE}/escalations.html?tab=rules`); await p.waitForSelector("[data-s]");
+  const tr = p.locator("tr[data-id]").first(); await tr.locator("[data-k=days]").fill("1"); await tr.locator("[data-k=mode]").selectOption("all"); await tr.locator("[data-k=active]").check();
+  await tr.locator("[data-s]").click(); await p.click(".md #ok"); await p.waitForSelector(".toast");
+  await p.goto(`${BASE}/escalations.html?tab=due`); await p.waitForSelector("#tabbody table");
+  ok((await p.$$("#tabbody tbody tr")).length >= 1, "إصدار الإجراءات تلقائياً بعد تفعيل القاعدة"); await shot(p, "20-escalations");
+  const href = await p.getAttribute("#tabbody a[href^='print.html']", "href");
+  await p.goto(`${BASE}/${href}`); await p.waitForSelector(".official"); await shot(p, "21-print");
+  ok(p.errs.length === 0, "لا أخطاء JavaScript (المرحلتان 5 و6): " + p.errs.join(" | "));
   // جوال
   p = await open(U(2), 390, 844); await p.goto(`${BASE}/attendance.html?s=00000000-0000-0000-0000-000000000c12&d=2026-11-11`); await p.waitForSelector("#rl li"); await shot(p, "14-mobile");
   await br.close(); console.log(fails ? `${fails} FAILED` : "ALL_E2E_PASSED"); process.exit(fails ? 1 : 0);

@@ -7,6 +7,7 @@ window.supabase = { createClient: () => {
       signOut: async () => { localStorage.removeItem("preview_user"); return {}; },
       signInWithPassword: async () => ({ error: { status: 400, code: "invalid_credentials" } }),
     },
+    storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: "about:blank" }, error: null }) }) },
     rpc: async (fn, args) => {
       const r = await fetch("/rpc/" + fn, { method: "POST", headers: { "content-type": "application/json", "x-user": user() || "" }, body: JSON.stringify(args || {}) });
       const j = await r.json(); return r.ok ? { data: j, error: null } : { data: null, error: j };

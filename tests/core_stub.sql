@@ -32,3 +32,5 @@ alter table public.staff_members enable row level security;
 grant usage on schema public to authenticated, anon;
 create table public.systems (code text primary key, name_ar text, description text, status text check (status in ('planned','connected','suspended')), api_key_hash text, last_seen_at timestamptz, created_at timestamptz default now(), scopes text[]);
 create table public.permissions (code text primary key, system_code text references public.systems, level text check (level in ('view','add','edit','approve')), name_ar text);
+create table public.school_profile (id boolean primary key default true, official_name text, ministry_no text, education_department text, education_office text);
+insert into public.school_profile (official_name, ministry_no) values ('متوسطة لبيد بن ربيعة', '000');

@@ -63,3 +63,14 @@
 .mono{font-variant-numeric:tabular-nums}
 .diff{font-size:.82rem;color:var(--ink2);max-width:520px;white-space:pre-wrap;word-break:break-word}
 @media print{header,.dnav,.pagebar .pb-u,.savebar,.subnav,footer{display:none!important}}
+
+/* الإشعار الرسمي المطبوع */
+.official{max-width:820px;margin:0 auto;line-height:1.9}
+.official .ohd{border-bottom:2px solid var(--line);padding-bottom:10px}
+@media print{.no-print{display:none!important}.official{box-shadow:none;border:0;max-width:none}body{background:#fff}}
+/* بوابة ولي الأمر */
+.gp{max-width:760px;margin:24px auto;padding-inline:14px}
+.gp .hd{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.gp .hd svg{width:52px;height:52px}
+.abs-l{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.abs-l li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface)}
