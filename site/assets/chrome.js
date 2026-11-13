@@ -15,7 +15,7 @@ const footerHTML = `<footer class="lab-foot"><div class="wrap lf"><div class="lf
 function bindNav() { const b = document.querySelector(".navtoggle"), n = document.querySelector("header nav"); if (b && n) b.onclick = () => { const o = n.classList.toggle("open"); b.setAttribute("aria-expanded", o); }; }
 
 // ===== الموقع العام: ترويسة (النواة يميناً، الصفحات وسطاً، شعار الوزارة يساراً) وديناميكية الصفحات =====
-const PUB_NAV = [["index.html", "الرئيسية", "home"]];
+const PUB_NAV = [["index.html", "الرئيسية", "home"], ["about.html", "عن انضباطي", "info"]];
 const headMoe = '<a class="moe hm" href="https://moe.gov.sa" target="_blank" rel="noopener" title="موقع وزارة التعليم"><b>وزارة التعليم</b><small>Ministry of Education</small></a>';
 const CORE_N = '<svg class="cn-ic" viewBox="0 0 160 160" aria-hidden="true"><defs><linearGradient id="cnl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#18a4ab"/><stop offset="1" stop-color="#0c6f82"/></linearGradient></defs><circle cx="80" cy="80" r="76" fill="#fff"/><g class="ci-ring"><circle cx="80" cy="80" r="62" fill="none" stroke="#4fa39a" stroke-width="5" stroke-linecap="round" stroke-dasharray="0.1 10.8"/></g><circle cx="80" cy="80" r="42" fill="url(#cnl)"/><text x="80" y="101" text-anchor="middle" font-family="Tajawal,Tahoma,Arial,sans-serif" font-size="70" font-weight="800" fill="#fff">ن</text><g class="ci-orb"><circle cx="80" cy="16" r="8" fill="#f0b34a"/><circle cx="24.6" cy="112" r="8" fill="#e0955a"/><circle cx="135.4" cy="112" r="8" fill="#4fa39a"/></g></svg>';
 const coreBlock = () => `<a class="hcb" href="${window.CORE_URL || "#"}" title="النواة الرقمية">${CORE_N}<span><b>النواة الرقمية</b><small>الهوية الموحدة</small></span></a>`;
