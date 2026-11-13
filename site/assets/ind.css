@@ -44,9 +44,26 @@
 /* جدول حالة الفصول */
 .secgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .sec-c{border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:6px}
-.sec-c.locked{border-color:var(--c1f)} .sec-c.unsaved{border-style:dashed}
+.sec-c{color:#fff;border:0;box-shadow:0 6px 16px rgba(20,40,60,.14);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
+.sec-c:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(20,40,60,.2)}
+.sec-c[hidden]{display:none}
+.sec-c.locked{background:linear-gradient(145deg,#27ae6f,#14794a)}
+.sec-c.none{background:linear-gradient(145deg,#e0524f,#a92b2b)}
+.sec-c.saved{background:linear-gradient(145deg,#96a2af,#667381)}
+.sec-c .meta{color:rgba(255,255,255,.9)}
+.sec-c .stb{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.2);border-radius:99px;padding:3px 10px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.sec-c .stb .ico{width:14px;height:14px}
+.sec-c .btn.sec{background:#fff;color:#1b2a3a;border-color:transparent}
+.sec-c label.chk{color:#fff}.sec-c input[type=checkbox]{accent-color:#fff}
+.lgd{display:flex;gap:8px;flex-wrap:wrap}
+.lg{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;border:2px solid var(--line);font:inherit;font-size:.88rem;font-weight:700;color:var(--ink);background:var(--surface);transition:background .2s,border-color .2s}
+.lg:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.lg i{width:14px;height:14px;border-radius:50%}.lg b{background:var(--soft);border-radius:99px;padding:0 8px;font-variant-numeric:tabular-nums}
+.lg-locked i{background:#1f9d63}.lg-none i{background:#d64545}.lg-saved i{background:#7d8996}
+.lg[aria-pressed=true].lg-locked{border-color:#1f9d63}.lg[aria-pressed=true].lg-none{border-color:#d64545}.lg[aria-pressed=true].lg-saved{border-color:#7d8996}
+.lg[aria-pressed=true]{background:var(--soft)}
 .sec-c label.chk{margin:0}
-.sec-c .meta{font-size:.82rem;color:var(--muted)}
+.sec-c .meta{font-size:.82rem}
 
 /* بطاقات المؤشرات */
 .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}

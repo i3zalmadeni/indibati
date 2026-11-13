@@ -120,16 +120,20 @@ PAGES.locks = () => boot("locks.html", async (main, c) => {
     let rows; try { rows = await rpc("ind_day_status", { p_day: D.value, p_grade: G.value || null }); } catch (e) { $("#lb").innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
     const pickable = (s) => (c.isCoord || s.mine);
     $("#la").innerHTML = canLock ? `<button class="btn sm" id="lSel" disabled>${ico("lock")}تثبيت المحدد</button>${c.isCoord ? `<button class="btn sm sec" id="lAll">${ico("lock")}تثبيت جميع الفصول${G.value ? " (الصف)" : ""}</button><button class="btn sm sec" id="uSel" disabled>${ico("unlock")}إلغاء تثبيت المحدد</button><button class="btn sm sec" id="uAll">${ico("unlock")}إلغاء تثبيت الجميع${G.value ? " (الصف)" : ""}</button>` : ""}<span class="sub" id="nsel"></span>` : "";
-    $("#lb").innerHTML = rows.length ? `<div class="row2" style="margin-bottom:8px"><span class="sub">${rows.filter((r) => r.locked).length} مثبت · ${rows.filter((r) => !r.locked).length} غير مثبت · ${rows.filter((r) => !r.saved).length} لم يُحفظ</span>${canLock ? '<label class="chk"><input type="checkbox" id="ckAll">تحديد الكل</label>' : ""}</div>
-      <div class="secgrid">${rows.map((s) => `<div class="sec-c ${s.locked ? "locked" : ""} ${s.saved ? "" : "unsaved"}"><div class="row2"><b>${esc(s.label)}</b>${lockBadge(s.locked)}</div>
+    const stt = (r) => (r.locked ? "locked" : r.saved ? "saved" : "none");
+    const cnt = (k) => rows.filter((r) => stt(r) === k).length;
+    const STB = { locked: ["lock", "مثبت"], none: ["x", "لم يتم التحضير"], saved: ["check", "تم التحضير ولم يُثبَّت"] };
+    $("#lb").innerHTML = rows.length ? `<div class="row2" style="margin-bottom:10px"><div class="lgd" role="group" aria-label="تصفية الفصول حسب الحالة">${[["locked", "مثبت"], ["none", "لم يتم التحضير"], ["saved", "تم التحضير ولم يُثبَّت"]].map(([k, t]) => `<button type="button" class="lg lg-${k}" data-f="${k}" aria-pressed="false"><i></i>${t}<b>${cnt(k)}</b></button>`).join("")}</div>${canLock ? '<label class="chk"><input type="checkbox" id="ckAll">تحديد الكل</label>' : ""}</div>
+      <div class="secgrid">${rows.map((s) => { const k = stt(s); return `<div class="sec-c ${k} ${s.saved ? "" : "unsaved"}" data-st="${k}"><div class="row2"><b>${esc(s.label)}</b><span class="stb">${ico(STB[k][0])}${STB[k][1]}</span></div>
         <div class="meta">${s.saved ? `حُفظ ${esc(fmtT(s.saved_at))}` : "لم يُحفظ التحضير"}${s.locked_at ? ` · ثُبّت ${esc(fmtT(s.locked_at))}` : ""}</div>
         <div class="meta">${s.students} طالب · بعذر ${s.excused} · بدون عذر ${s.unexcused}</div>
-        <div class="row2">${canLock && pickable(s) ? `<label class="chk"><input type="checkbox" data-s="${s.id}" data-l="${s.locked ? 1 : 0}">تحديد</label>` : "<span></span>"}<a class="btn sm sec" href="attendance.html?s=${s.id}&d=${D.value}">فتح</a></div></div>`).join("")}</div>`
+        <div class="row2">${canLock && pickable(s) ? `<label class="chk"><input type="checkbox" data-s="${s.id}" data-l="${s.locked ? 1 : 0}">تحديد</label>` : "<span></span>"}<a class="btn sm sec" href="attendance.html?s=${s.id}&d=${D.value}">فتح</a></div></div>`; }).join("")}</div>`
       : empty("lock", "لا فصول ضمن نطاقك", "");
     const sel = () => $$("[data-s]:checked").map((x) => x.dataset.s);
     const upd = () => { const n = sel().length; if ($("#nsel")) $("#nsel").textContent = n ? `${n} محدد` : ""; if ($("#lSel")) $("#lSel").disabled = !n; if ($("#uSel")) $("#uSel").disabled = !n; };
     $$("[data-s]").forEach((x) => (x.onchange = upd));
-    const ca = $("#ckAll"); if (ca) ca.onchange = () => { $$("[data-s]").forEach((x) => (x.checked = ca.checked)); upd(); };
+    const ca = $("#ckAll"); if (ca) ca.onchange = () => { $$(".sec-c:not([hidden]) [data-s]").forEach((x) => (x.checked = ca.checked)); upd(); };
+    const fl = new Set(); $$(".lg").forEach((b) => (b.onclick = () => { const k = b.dataset.f; fl.has(k) ? fl.delete(k) : fl.add(k); b.setAttribute("aria-pressed", fl.has(k)); $$(".sec-c").forEach((x) => (x.hidden = fl.size > 0 && !fl.has(x.dataset.st))); }));
     const label = (ids) => rows.filter((r) => ids.includes(r.id)).map((r) => r.label);
     const report = (r) => { const m = []; if (r.locked?.length) m.push(`ثُبّت ${r.locked.length}`); if (r.already?.length) m.push(`${r.already.length} مثبت مسبقاً`); if (r.skipped_unsaved?.length) m.push(`تُخطي ${r.skipped_unsaved.length} لم يُحفظ تحضيره`); if (r.unlocked) m.push(`أُلغي تثبيت ${r.unlocked.length}`); toast(m.join(" · ") || "لا تغيير"); };
     const lock = async (scope, ids) => {
