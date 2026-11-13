@@ -197,7 +197,8 @@ language sql stable security definer set search_path = '' as $f$
   select s.id, s.student_no, s.full_name, e.grade_code
   from public.student_enrollments e join public.students s on s.id = e.student_id
   where e.section_id = p_section
-    and coalesce(e.started_on, '-infinity'::date) <= p_day
+    -- لا نعتمد started_on: في بيانات النواة الحالية يحمل كثير منها تاريخ الاستيراد لا تاريخ الالتحاق الفعلي،
+    -- فتصفيتها تُسقط طلاباً حقيقيين من التحضير بأثر رجعي.
     and (e.status = 'enrolled' or e.ended_on >= p_day)
   order by s.full_name $f$;
 
