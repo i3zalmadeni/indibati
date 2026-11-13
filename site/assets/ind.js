@@ -60,7 +60,7 @@ const ERR = {
   invalid_link: "الرابط غير صالح أو انتهت صلاحيته. اطلب رابطاً جديداً من المدرسة.",
   no_absence_that_day: "لا يوجد غياب مسجل لهذا التاريخ.", excuse_too_late: "انتهت المدة المسموحة لتقديم العذر لهذا اليوم.",
   attachment_required: "إرفاق ملف العذر مطلوب.", too_many_files: "ثلاثة مرفقات كحد أقصى.", excuse_exists: "سبق تقديم عذر لهذا اليوم.",
-  attachment_invalid: "مرفق غير صالح.",
+  attachment_invalid: "مرفق غير صالح.", range_too_long: "الفترة أطول من المسموح (400 يوم).",
 };
 const mapErr = (e) => { const m = e?.message || String(e); return ERR[m] || (/permission denied|row-level security/i.test(m) ? ERR.forbidden : /Failed to fetch|NetworkError/i.test(m) ? "تعذر الاتصال بالخادم. تحقق من الشبكة." : m); };
 async function rpc(fn, args) {
@@ -162,6 +162,7 @@ const NAV = [
   ["excuses.html", "الأعذار", "file", "أعذار الغياب المقدمة من أولياء الأمور ومراجعتها", "oversee"],
   ["student.html", "الملفات", "user", "سجل الطالب التراكمي: الغياب والتأخر والأعذار والإشعارات والإجراءات", "oversee"],
   ["notifications.html", "الإشعارات", "bell", "رسائل أولياء الأمور عبر واتساب: الإعداد والإرسال والمتابعة", "oversee"],
+  ["reports.html", "التقارير", "chart", "تقارير الحضور والغياب والتأخر والإشعارات والأعذار والإجراءات والنقاط، مع التصدير والطباعة", "oversee"],
   ["escalations.html", "الإجراءات", "flag", "إشعارات الغياب النظامية وحدودها وطباعتها", "oversee"],
   ["assignments.html", "التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord"],
   ["settings.html", "الإعدادات", "gear", "إعدادات التأخر والتحضير والأسباب والأدوار", "admin"],
@@ -185,7 +186,7 @@ async function boot(page, render, o = {}) {
   window.__ind = ctx;
   const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
-  const FULL = { "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات" };
+  const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات" };
   const cur0 = NAV.find((n) => n[0] === page), cur = cur0 ? [cur0[0], FULL[page] || cur0[1], cur0[2], cur0[3]] : [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>

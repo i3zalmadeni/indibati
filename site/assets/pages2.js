@@ -213,3 +213,50 @@ PAGES.print = () => boot("print.html", async (main) => {
     <p class="sub" style="margin-top:28px">اطلعت على الإشعار — ولي الأمر: .................................. التوقيع: .................. التاريخ: ..................</p></article>
     <div class="acts mt no-print"><button class="btn" onclick="print()">${ico("print")}طباعة</button></div>`;
 }, { title: "طباعة إشعار رسمي", role: "oversee" });
+
+// ============================== التقارير ==============================
+const REPORTS = [
+  ["الحضور والغياب", [["attendance_daily", "تقرير الحضور اليومي"], ["absence_list", "تقرير الغياب (يومي/أسبوعي/فصلي)"], ["absence_excused", "تقرير الغياب بعذر"], ["absence_unexcused", "تقرير الغياب بدون عذر"], ["absence_summary", "ملخص الغياب لكل طالب"], ["absence_repeat", "الطلاب المتكرر غيابهم"]]],
+  ["التأخر", [["lateness_list", "تقرير التأخر (يومي/أسبوعي/فصلي)"], ["lateness_summary", "ملخص التأخر لكل طالب"], ["lateness_repeat", "الطلاب المتكرر تأخرهم"], ["lateness_reasons", "أكثر أسباب التأخر"]]],
+  ["المتابعة", [["notifications", "تقرير الإشعارات المرسلة"], ["excuses", "تقرير الأعذار"], ["escalations", "تقرير الإجراءات النظامية"], ["rewards", "تقرير نقاط الانتظام"]]],
+];
+PAGES.reports = () => boot("reports.html", async (main) => {
+  const meta = await rpc("ind_meta", { p_task: "view" }), yi = await rpc("ind_year_info"), t = meta.today, d = (n) => new Date(d12(t) - n * 864e5).toISOString().slice(0, 10);
+  const ws = new Date(d12(t) - dow(t) * 864e5).toISOString().slice(0, 10);
+  const PRE = { today: [lastSchoolDay(meta), lastSchoolDay(meta)], week: [ws, t], month: [t.slice(0, 8) + "01", t], d30: [d(30), t], term: [(yi && yi.starts_on) || d(120), t] };
+  main.innerHTML = `<div class="card no-print"><div class="pickbar">
+      <div style="grid-column:span 2"><label for="rk">التقرير</label><select id="rk">${REPORTS.map(([g, l]) => `<optgroup label="${g}">${l.map(([k, n]) => `<option value="${k}">${n}</option>`).join("")}</optgroup>`).join("")}</select></div>
+      <div><label for="rp">الفترة</label><select id="rp"><option value="today">آخر يوم دراسي</option><option value="week" selected>هذا الأسبوع</option><option value="month">هذا الشهر</option><option value="d30">آخر 30 يوماً</option><option value="term">منذ بداية العام</option><option value="custom">مخصصة</option></select></div>
+      <div><label for="rf">من</label><input type="date" id="rf"></div><div><label for="rt">إلى</label><input type="date" id="rt" max="${t}"></div></div>
+    <div class="pickbar"><div><label for="rg">الصف</label><select id="rg"><option value="">جميع الصفوف</option>${meta.grades.map((g) => `<option value="${g.code}">${esc(g.name)}</option>`).join("")}</select></div>
+      <div><label for="rs">الفصل</label><select id="rs"><option value="">جميع الفصول</option></select></div>
+      <div><label for="rq">بحث عن طالب</label><input type="search" id="rq" placeholder="الاسم أو الرقم"></div>
+      <div id="rmw" hidden><label for="rm">الحد الأدنى للتكرار</label><input type="number" id="rm" min="1" value="3"></div></div>
+    <div class="acts"><button class="btn" id="go">${ico("chart")}عرض التقرير</button><button class="btn sec" id="xl" disabled>${ico("file")}تصدير Excel</button><button class="btn sec" id="pd" disabled>${ico("print")}طباعة / PDF</button></div></div>
+    <div id="rptOut" class="mt"></div>`;
+  const K = $("#rk"), P = $("#rp"), F = $("#rf"), T = $("#rt"), G = $("#rg"), S = $("#rs");
+  const preset = () => { if (P.value !== "custom") { [F.value, T.value] = PRE[P.value]; } };
+  const fillS = () => { S.innerHTML = '<option value="">جميع الفصول</option>' + meta.sections.filter((x) => !G.value || x.grade === G.value).map((x) => `<option value="${x.id}">${esc(x.label)}</option>`).join(""); };
+  P.onchange = preset; F.onchange = T.onchange = () => (P.value = "custom"); G.onchange = fillS; K.onchange = () => ($("#rmw").hidden = !/repeat/.test(K.value));
+  preset(); fillS();
+  let last = null;
+  const name = () => K.selectedOptions[0].textContent;
+  $("#go").onclick = async () => {
+    $("#rptOut").innerHTML = loading();
+    try { last = await rpc("ind_report", { p_kind: K.value, p_from: F.value, p_to: T.value, p_grade: G.value || null, p_section: S.value || null, p_q: $("#rq").value || null, p_min: +$("#rm").value || 3 }); }
+    catch (e) { $("#rptOut").innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
+    const isDate = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const scope = [G.value ? G.selectedOptions[0].textContent : "", S.value ? S.selectedOptions[0].textContent : ""].filter(Boolean).join(" · ");
+    $("#rptOut").innerHTML = `<article class="card official" style="max-width:none"><div class="row2 ohd"><div><b>المملكة العربية السعودية · وزارة التعليم</b><br>مدرسة لبيد بن ربيعة المتوسطة · انضباطي</div><div style="text-align:left"><small>صدر ${esc(fmtBoth(t))}</small></div></div>
+      <h2 style="margin:14px 0 4px">${esc(name())}</h2><p class="sub">من ${esc(fmtBoth(last.from))} إلى ${esc(fmtBoth(last.to))}${scope ? " · " + esc(scope) : ""} · ${last.rows.length} سجل</p>
+      ${last.rows.length ? `<div class="tw"><table class="tbl"><thead><tr><th>#</th>${last.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${last.rows.map((r, i) => `<tr><td class="mono">${i + 1}</td>${r.map((v) => `<td>${isDate(v) ? esc(fmtShortDay(v)) : esc(v ?? "—")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : empty("chart", "لا بيانات في هذه الفترة", "")}</article>`;
+    $("#xl").disabled = $("#pd").disabled = !last.rows.length;
+  };
+  $("#xl").onclick = async () => {
+    if (!window.XLSX) { await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"; s.onload = ok; s.onerror = no; document.head.appendChild(s); }).catch(() => null); }
+    if (!window.XLSX) return exportCSV(name(), last.columns, last.rows);
+    const ws2 = XLSX.utils.aoa_to_sheet([[name()], [`من ${last.from} إلى ${last.to}`], [], last.columns, ...last.rows]); ws2["!views"] = [{ RTL: true }];
+    const wb = XLSX.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] }; XLSX.utils.book_append_sheet(wb, ws2, "التقرير"); XLSX.writeFile(wb, `${name()}-${last.from}-${last.to}.xlsx`);
+  };
+  $("#pd").onclick = () => print();
+}, { role: "oversee" });

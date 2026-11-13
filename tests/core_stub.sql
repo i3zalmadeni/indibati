@@ -34,3 +34,9 @@ create table public.systems (code text primary key, name_ar text, description te
 create table public.permissions (code text primary key, system_code text references public.systems, level text check (level in ('view','add','edit','approve')), name_ar text);
 create table public.school_profile (id boolean primary key default true, official_name text, ministry_no text, education_department text, education_office text);
 insert into public.school_profile (official_name, ministry_no) values ('متوسطة لبيد بن ربيعة', '000');
+-- من نظام «قيمي» (موجود في القاعدة نفسها): دفتر النقاط بقيوده الأصلية
+create table public.qm_points_ledger (id uuid primary key default gen_random_uuid(), student_id uuid not null references public.students(id), points int not null check (points <> 0),
+  kind text not null check (kind in ('reinforcement','correction','reversal')), reason text, source_type text, source_id uuid, reverses_id uuid references public.qm_points_ledger(id),
+  created_by uuid not null references public.staff_members(id), created_at timestamptz not null default now());
+create unique index qm_ledger_src_uq on public.qm_points_ledger (source_type, source_id) where reverses_id is null and source_id is not null;
+create unique index qm_ledger_rev_uq on public.qm_points_ledger (reverses_id) where reverses_id is not null;

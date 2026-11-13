@@ -128,6 +128,16 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   const href = await p.getAttribute("#tabbody a[href^='print.html']", "href");
   await p.goto(`${BASE}/${href}`); await p.waitForSelector(".official"); await shot(p, "21-print");
   ok(p.errs.length === 0, "لا أخطاء JavaScript (المرحلتان 5 و6): " + p.errs.join(" | "));
+  // 8) المرحلة 7: التقارير ونقاط الانتظام
+  p = await open(U(1));
+  await p.goto(`${BASE}/reports.html`); await p.waitForSelector("#rk");
+  await p.selectOption("#rk", "absence_list"); await p.selectOption("#rp", "term"); await p.click("#go"); await p.waitForSelector("#rptOut .official");
+  ok((await p.$$("#rptOut tbody tr")).length >= 3 && (await p.$("header #rptOut")) === null, "عرض تقرير الغياب منذ بداية العام");
+  await shot(p, "22-report");
+  const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 15000 }).catch(() => null), p.click("#xl")]);
+  ok(!!dl, "تصدير التقرير إلى Excel/CSV");
+  await p.goto(`${BASE}/settings.html?tab=rewards`); await p.waitForSelector("#r1"); await shot(p, "23-rewards");
+  ok(p.errs.length === 0, "لا أخطاء JavaScript (المرحلة 7): " + p.errs.join(" | "));
   // جوال
   p = await open(U(2), 390, 844); await p.goto(`${BASE}/attendance.html?s=00000000-0000-0000-0000-000000000c12&d=2026-11-11`); await p.waitForSelector("#rl li"); await shot(p, "14-mobile");
   await br.close(); console.log(fails ? `${fails} FAILED` : "ALL_E2E_PASSED"); process.exit(fails ? 1 : 0);

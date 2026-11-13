@@ -270,7 +270,7 @@ PAGES.assignments = () => boot("assignments.html", async (main) => {
 // ============================== الإعدادات ==============================
 PAGES.settings = () => boot("settings.html", async (main, c) => {
   const list = [];
-  if (c.isCoord) list.push(["late", "إعدادات التأخر", "clock"], ["reasons", "أسباب التأخر", "list"], ["att", "إعدادات التحضير", "check"], ["exc", "الأعذار", "file"]);
+  if (c.isCoord) list.push(["late", "إعدادات التأخر", "clock"], ["reasons", "أسباب التأخر", "list"], ["att", "إعدادات التحضير", "check"], ["exc", "الأعذار", "file"], ["rewards", "نقاط الانتظام", "star"]);
   if (c.isPortal || c.isAdmin) list.push(["roles", "الأدوار", "users"]);
   if (!list.length) { main.innerHTML = empty("gear", "لا إعدادات متاحة لدورك", ""); return; }
   tabs(main, list, async (k, body) => {
@@ -313,6 +313,19 @@ PAGES.settings = () => boot("settings.html", async (main, c) => {
         <div><label for="e3">صلاحية رابط ولي الأمر (يوماً)</label><input type="number" id="e3" min="1" max="120" value="${+E.link_valid_days}"></div></div>
         <div class="acts mt"><button class="btn" id="sv">حفظ</button></div></div>`;
       $("#sv").onclick = async () => { try { await rpc("ind_set_excuse_settings", { p: { attachment_required: $("#e1").checked, max_days_after: +$("#e2").value, link_valid_days: +$("#e3").value } }); toast("حُفظت الإعدادات"); } catch (e) { toast(mapErr(e), true); } };
+    }
+    if (k === "rewards") {
+      const o = await rpc("ind_rewards_overview", { p_limit: 20 }), R = o.settings;
+      body.innerHTML = `<div class="card"><p class="sub">يستحق الطالب نقاطاً عند إكمال أسبوع دراسي كامل دون غياب، وتُسجَّل في دفتر نقاط «قيمي» (رعاية المتعلمين) بمعرّفه المركزي، ولا تُكرر للأسبوع نفسه. يُحتسب الأسبوع بعد تثبيت جميع أيامه لكل الفصول، ويُعكس الاستحقاق بقيد موثق إذا سُجّل غياب لاحق.</p>
+        ${o.qiyami ? "" : '<p class="note">نظام «قيمي» غير مثبت في القاعدة؛ تُحفظ الاستحقاقات معلقة.</p>'}
+        <label class="chk"><input type="checkbox" id="r1" ${R.enabled ? "checked" : ""}>تفعيل الاحتساب التلقائي</label>
+        <div class="fg"><div><label for="r2">النقاط لكل أسبوع</label><input type="number" id="r2" min="1" max="50" value="${+R.points || 5}"></div></div>
+        <label class="chk"><input type="checkbox" id="r3" ${R.lateness_blocks ? "checked" : ""}>التأخر يمنع الاستحقاق</label>
+        <div class="acts mt"><button class="btn" id="sv">حفظ</button></div></div>
+        <div class="card mt"><h3 class="sec" style="margin-top:0">الأسابيع</h3>${o.weeks.length ? `<div class="tw"><table class="tbl"><thead><tr><th>الأسبوع</th><th>أيام الدراسة</th><th>الحالة</th><th>مُنحت</th><th>معلقة</th><th>أُلغيت</th><th></th></tr></thead><tbody>${o.weeks.map((w) => `<tr><td>${esc(fmtBoth(w.week_start))}</td><td class="mono">${w.days}</td><td>${w.final ? '<span class="badge ok">مكتمل</span>' : '<span class="badge warn">غير مكتمل التثبيت</span>'}</td><td class="mono">${w.awarded}</td><td class="mono">${w.pending}</td><td class="mono">${w.reversed}</td><td>${w.final && R.enabled ? `<button class="btn sm sec" data-w="${w.week_start}">احتساب</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا أسابيع بعد.</p>'}</div>`;
+      $("#sv").onclick = async () => { if ($("#r1").checked && !R.enabled && !(await confirmBox("تفعيل نقاط الانتظام", "ستُضاف النقاط إلى أرصدة الطلاب في «قيمي» وتظهر في لوحاته.", { okText: "تفعيل" }))) return;
+        try { await rpc("ind_set_reward_settings", { p: { enabled: $("#r1").checked, points: +$("#r2").value, lateness_blocks: $("#r3").checked } }); toast("حُفظت الإعدادات"); $$("[data-t=rewards]")[0].click(); } catch (e) { toast(mapErr(e), true); } };
+      $$("[data-w]").forEach((b) => (b.onclick = async () => { try { const r = await rpc("ind_rewards_run", { p_day: b.dataset.w }); toast(r.skipped ? "الأسبوع غير مكتمل أو الاحتساب معطّل" : `مُنح ${r.awarded} طالباً`); $$("[data-t=rewards]")[0].click(); } catch (e) { toast(mapErr(e), true); } }));
     }
     if (k === "roles") {
       const S = await rpc("ind_staff_list");
