@@ -1,0 +1,19 @@
+# النشر
+
+## البيئات
+| البيئة | القاعدة | الواجهة |
+|---|---|---|
+| Development | Postgres محلي بنسخة هيكلية من النواة (`tests/core_stub.sql`) وبيانات وهمية (`tests/e2e/seed.sql`) | `node tests/e2e/server.js` |
+| Staging | مقترح: مشروع Supabase مجاني منفصل، بالهيكل نفسه ودون بيانات حقيقية | فرع `staging`، ويمكن نشره على Pages مستودع آخر |
+| Production | قاعدة النواة `labeedsch_PC` | `main` ← GitHub Pages |
+
+## خطوات الإنتاج (بعد الموافقة)
+1. نسخة احتياطية: `create schema backup_indibati_<date>` أو نسخة PITR من لوحة Supabase.
+2. تطبيق `supabase/migrations/0301_indibati_foundation.sql`. لا يمس جداول النواة، ويمكن إعادة تنفيذه.
+3. دمج فرع `indibati-integration` في مستودع النواة وتطبيق `0023_indibati_system.sql`.
+4. من «الإعدادات ← الأدوار» يعيّن مدير النواة منسق الغياب وشؤون الطلاب.
+5. من «إدارة التكليفات» يُسند المنسق الفصول، بشرط أن يكون لكل مكلف حساب دخول في النواة.
+6. GitHub: Settings ← Pages ← Source: GitHub Actions.
+
+## التراجع
+`drop table … ind_* cascade; drop function ind_*` ينهي النظام دون أثر على النواة.

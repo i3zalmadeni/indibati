@@ -1,0 +1,50 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تسجيل الدخول – انضباطي</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/ui.css"><link rel="stylesheet" href="assets/ind.css"></head><body class="pubsite lgbody">
+<div id="hdr"></div>
+<div class="login card lgc"><div class="lgi" data-core></div><h2>تسجيل الدخول</h2><p class="sub">النواة الرقمية · انضباطي · متوسطة لبيد بن ربيعة</p>
+<p class="sub" id="to" hidden></p>
+<form id="f"><label for="e">معرّف الدخول</label><input id="e" type="text" required autocomplete="username" dir="ltr" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" placeholder="أرقام أو حروف إنجليزية">
+<label for="p">كلمة المرور</label><input id="p" type="password" required autocomplete="current-password">
+<p class="err" id="m" role="alert"></p><button class="btn" id="go">دخول</button></form></div><div id="ftr"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/chrome.js"></script><script src="assets/config.js"></script><script>
+pubInit("login.html");
+// صفحة الدخول الموحدة للنواة الرقمية، نسخة داخل نظام «انضباطي». الأنظمة على الأصل نفسه وقاعدة النواة نفسها،
+// فالجلسة تُشارَك تلقائياً مع بقية الأنظمة. next لا يُقبل إلا داخل هذا النظام أو أحد أنظمة النواة المعروفة.
+const HOME = location.pathname.replace(/[^/]*$/, "");
+const SYSTEMS = [{ p: HOME.toLowerCase(), n: "انضباطي" }, { p: "/digital-core/", n: "النواة الرقمية" }, { p: "/self-evaluation/", n: "التقويم الذاتي الذكي" }, { p: "/teachers-community/", n: "مجتمع لبيد المهني" }, { p: "/smart-plans/", n: "الخطط الذكية" }, { p: "/facility-booking/", n: "احجز مرفق" }, { p: "/qiyami/", n: "قيمي" }];
+const safeNext = (raw) => {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw, location.href);
+    if (u.origin !== location.origin) return null;
+    const s = SYSTEMS.find((x) => (u.pathname.toLowerCase() + (u.pathname.endsWith("/") ? "" : "/")).startsWith(x.p));
+    return s ? { href: u.href, name: s.n } : null;
+  } catch (_) { return null; }
+};
+const qs = new URLSearchParams(location.search);
+const nxt = safeNext(qs.get("next"));
+const after = () => location.replace(nxt ? nxt.href : "dashboard.html");
+if (nxt && nxt.name !== "انضباطي") { const t = document.getElementById("to"); t.textContent = "للدخول إلى " + nxt.name; t.hidden = false; }
+const MSG = {
+  nostaff: "هذا الحساب غير مرتبط بسجل منسوب. راجع مدير النواة.",
+  inactive: "حسابك غير مفعّل في النواة الرقمية. راجع مدير النواة.",
+  denied: "حسابك معروف في النواة الرقمية لكنه غير مرتبط بهذا النظام. راجع مدير النواة أو منسق النظام.",
+  load: "تعذّر تحميل بيانات حسابك. حاول مرة أخرى.",
+};
+const em = qs.get("e") || (location.search.includes("nostaff") ? "nostaff" : "");
+if (MSG[em]) document.getElementById("m").textContent = MSG[em];
+// المعرّف (رقم أو حروف) يُترجم إلى بريد داخلي؛ ومن أدخل بريداً حقيقياً (الحسابات القديمة) يُستعمل كما هو.
+const toAuthEmail = (v) => { v = v.trim().toLowerCase(); return v.includes("@") ? v : v + "@" + (window.LOGIN_DOMAIN || "id.invalid"); };
+const sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+// جلسة قائمة: نتابع إلى الوجهة، إلا إن عاد النظام برسالة خطأ (فيكون قد أنهى الجلسة بنفسه).
+if (!MSG[em]) sb.auth.getSession().then(({ data }) => { if (data.session) after(); });
+document.getElementById("f").onsubmit = async (ev) => { ev.preventDefault();
+  const m = document.getElementById("m"), go = document.getElementById("go"); if (go.disabled) return;
+  m.textContent = ""; go.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: toAuthEmail(document.getElementById("e").value), password: document.getElementById("p").value });
+  if (!error) { after(); return; }
+  go.disabled = false;
+  m.textContent = /banned/.test(error.code || "") ? "هذا الحساب موقوف. راجع مدير النواة."
+    : (error.code === "invalid_credentials" || error.status === 400) ? "بيانات الدخول غير صحيحة." : "تعذر الاتصال بالخادم، حاول مرة أخرى."; };
+</script></body></html>
