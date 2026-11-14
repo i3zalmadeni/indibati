@@ -36,15 +36,21 @@ pubInit("guardian.html");
     const md = modal(`<h3>عذر غياب يوم ${esc(fmtDay(a.day))}</h3>
       <label for="gr">سبب الغياب *</label><select id="gr"><option value="">اختر</option>${["مرض أو مراجعة طبية", "ظرف عائلي", "سفر", "موعد رسمي", "سبب آخر"].map((x) => `<option>${x}</option>`).join("")}</select>
       <label for="gd">شرح مختصر</label><textarea id="gd" maxlength="1000"></textarea>
-      <label for="gf">إرفاق ملف العذر (صورة أو PDF، حتى 5 ميجابايت، 3 ملفات كحد أقصى)</label><input type="file" id="gf" accept="image/jpeg,image/png,image/webp,application/pdf" multiple>
+      <label for="gf">إرفاق ملف العذر${need ? " *" : " (اختياري)"}</label><input type="file" id="gf" accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp" multiple aria-describedby="gfh">
+      <p class="sub" id="gfh" style="margin:4px 0 0">الصيغ المقبولة: ملف PDF، أو صورة بصيغة JPG أو PNG أو WEBP. الحد الأقصى <b>5 ميجابايت لكل مرفق</b>، وحتى 3 مرفقات.</p><ul class="sub" id="gfl" style="margin:4px 0 0;padding-inline-start:18px"></ul>
       <p class="err" id="ge" role="alert"></p><div class="acts mt"><button class="btn" id="ok">إرسال الطلب</button><button class="btn sec" id="no">رجوع</button></div>`);
     $("#no", md.el).onclick = md.close;
+    const OKT = /^(application\/pdf|image\/(jpeg|png|webp))$/, OKX = /\.(pdf|jpe?g|png|webp)$/i, MB = (n) => (n / 1048576).toFixed(1);
+    const bad = (f) => (!OKT.test(f.type) && !OKX.test(f.name) ? "صيغة غير مقبولة" : f.size > 5 * 1024 * 1024 ? "حجمه أكبر من 5 ميجابايت" : "");
+    $("#gf", md.el).onchange = () => { const fs = [...$("#gf", md.el).files]; $("#ge", md.el).textContent = "";
+      $("#gfl", md.el).innerHTML = fs.map((f) => `<li>${esc(f.name)} · ${MB(f.size)} ميجابايت${bad(f) ? ` <b class="err">— ${bad(f)}</b>` : " ✓"}</li>`).join(""); };
     $("#ok", md.el).onclick = async () => {
       const e = $("#ge", md.el), files = [...$("#gf", md.el).files]; e.textContent = "";
       if (!$("#gr", md.el).value) return (e.textContent = "اختر سبب الغياب.");
       if (need && !files.length) return (e.textContent = "إرفاق ملف العذر مطلوب.");
       if (files.length > 3) return (e.textContent = "ثلاثة ملفات كحد أقصى.");
-      if (files.some((f) => f.size > 5 * 1024 * 1024)) return (e.textContent = "حجم الملف يتجاوز 5 ميجابايت.");
+      const wrong = files.find((f) => bad(f));
+      if (wrong) return (e.textContent = `«${wrong.name}»: ${bad(wrong)}. المقبول ملف PDF أو صورة، بحد أقصى 5 ميجابايت لكل مرفق.`);
       const btn = $("#ok", md.el); btn.disabled = true; btn.textContent = "جارٍ الإرسال…";
       try {
         const paths = [];
@@ -52,7 +58,7 @@ pubInit("guardian.html");
           const fd = new FormData(); fd.append("token", token); fd.append("file", f);
           const r = await fetch(FN("ind-guardian"), { method: "POST", body: fd, headers: { apikey: APP_CONFIG.supabaseKey } });
           const j = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error({ file_type: "نوع الملف غير مسموح. أرسل صورة أو PDF.", file_too_large: "حجم الملف يتجاوز 5 ميجابايت.", rate_limited: "رُفعت ملفات كثيرة، حاول لاحقاً.", invalid_link: ERR.invalid_link }[j.error] || "تعذر رفع الملف.");
+          if (!r.ok) throw new Error({ file_type: `«${f.name}»: صيغة غير مقبولة. أرسل ملف PDF أو صورة JPG أو PNG.`, file_too_large: `«${f.name}» يتجاوز 5 ميجابايت.`, rate_limited: "رُفعت ملفات كثيرة، حاول لاحقاً.", invalid_link: ERR.invalid_link }[j.error] || "تعذر رفع الملف.");
           paths.push(j.path);
         }
         await rpc("ind_g_submit_excuse", { p_token: token, p_day: a.day, p_reason: $("#gr", md.el).value, p_details: $("#gd", md.el).value, p_paths: paths, p_request_id: req });

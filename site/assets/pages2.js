@@ -87,9 +87,9 @@ PAGES.notifications = () => boot("notifications.html", async (main, c) => {
         $("#ll", body).innerHTML = rows.length ? `<div class="tw"><table class="tbl"><thead><tr><th>الطالب</th><th>ولي الأمر</th><th>النوع</th><th>الإنشاء</th><th>الإرسال</th><th>الحالة</th><th>معرّف المزود</th>${c.isCoord ? "<th></th>" : ""}</tr></thead><tbody>${rows.map((n) => `<tr>
           <td>${esc(n.student)}</td><td>${esc(n.guardian || "—")}</td><td>${esc(NKIND[n.kind] || n.kind)}</td><td><small>${esc(fmtT(n.created_at))}<br>${esc(n.by || "آلي")}</small></td><td><small>${esc(fmtT(n.sent_at))}</small></td>
           <td>${badge(NST, n.status)}${n.error ? `<br><small class="err">${esc(n.error)}</small>` : ""}</td><td><small class="mono" dir="ltr">${esc(n.provider_message_id || "")}</small></td>
-          ${c.isCoord ? `<td><div class="acts">${n.status === "failed" ? `<button class="btn sm sec" data-r="${n.id}">إعادة</button>` : ""}${["queued", "no_phone", "failed"].includes(n.status) ? `<button class="btn sm sec" data-c="${n.id}">إلغاء</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table></div>` : empty("bell", "لا رسائل", "");
+          ${c.isCoord ? `<td><div class="acts">${n.status === "failed" ? `<button class="btn sm sec" data-r="${n.id}">إعادة</button>` : ""}${["queued", "no_phone", "failed"].includes(n.status) ? `<button class="btn sm sec" data-c="${n.id}">حذف</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table></div>` : empty("bell", "لا رسائل", "");
         $$("[data-r]", body).forEach((b) => (b.onclick = async () => { try { await rpc("ind_notification_retry", { p_id: b.dataset.r }); load(); } catch (e) { toast(mapErr(e), true); } }));
-        $$("[data-c]", body).forEach((b) => (b.onclick = async () => { if (!(await confirmBox("إلغاء الرسالة", "لن تُرسل هذه الرسالة.", { okText: "إلغاء الرسالة", danger: true }))) return; try { await rpc("ind_notification_cancel", { p_id: b.dataset.c }); load(); } catch (e) { toast(mapErr(e), true); } }));
+        $$("[data-c]", body).forEach((b) => (b.onclick = async () => { if (!(await confirmBox("حذف الرسالة", "لن تُرسل هذه الرسالة.", { okText: "حذف", danger: true }))) return; try { await rpc("ind_notification_cancel", { p_id: b.dataset.c }); load(); } catch (e) { toast(mapErr(e), true); } }));
       };
       $("#ls", body).onchange = load; $("#lk", body).onchange = load;
       $("#xp", body).onclick = () => exportCSV("الإشعارات", ["الطالب", "ولي الأمر", "النوع", "الإنشاء", "الإرسال", "الحالة", "السبب", "معرف المزود"], rows.map((n) => [n.student, n.guardian, NKIND[n.kind], fmtT(n.created_at), fmtT(n.sent_at), NST[n.status]?.[0], n.error, n.provider_message_id]));
@@ -158,11 +158,12 @@ PAGES.messages = () => boot("messages.html", async (main, c) => {
     if (my !== seq) return;
     const tpl = (await rpc("ind_templates_list")).find((t) => t.code === "absence");
     if (my !== seq) return;
+    const PEND = ["queued", "no_phone", "failed"], live = (r) => r.notice && r.notice.status !== "cancelled", pend = rows.filter((r) => live(r) && PEND.includes(r.notice.status));
     $("#nl", body).innerHTML = `<div class="row2"><label class="chk"><input type="checkbox" id="ca">تحديد جميع من لم يُشعَر</label><span class="sub">${rows.length} غائب · ${rows.filter((r) => !r.has_phone).length} بلا رقم جوال</span></div>
       <div class="tw"><table class="tbl"><thead><tr><th></th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>ولي الأمر</th><th>الإشعار</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.notice && r.notice.status !== "cancelled" ? "" : `<input type="checkbox" data-st="${r.student_id}" aria-label="${esc(r.name)}">`}</td>
       <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}</td><td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td>
-      <td>${esc(r.guardian || "ولي أمر الطالب")} ${r.has_phone ? (r.phone_source === "core" ? '<span class="badge">رقم النواة</span>' : "") : '<span class="badge bad">لا رقم</span>'}</td><td>${r.notice ? badge(NST, r.notice.status) : "—"}</td></tr>`).join("")}</tbody></table></div>
-      <div class="savebar"><span class="sub" id="nc">لم يُحدد أحد</span><div class="acts"><button class="btn sec" id="pv">معاينة الرسالة</button><button class="btn" id="qq" disabled>${ico("send")}إدراج في الطابور</button>${status && status.configured ? `<button class="btn sec" id="sn">إرسال الطابور الآن</button>` : ""}</div></div>`;
+      <td>${esc(r.guardian || "ولي أمر الطالب")} ${r.has_phone ? (r.phone_source === "core" ? '<span class="badge">رقم النواة</span>' : "") : '<span class="badge bad">لا رقم</span>'}</td><td><span style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap">${live(r) ? badge(NST, r.notice.status) : "—"}${live(r) && PEND.includes(r.notice.status) ? `<button class="btn sm sec" style="flex-direction:row;padding:4px 10px" data-del="${r.notice.id}" title="حذف الإشعار المعلق" aria-label="حذف إشعار ${esc(r.name)}">${ico("x")}حذف</button>` : ""}</span></td></tr>`).join("")}</tbody></table></div>
+      <div class="savebar"><span class="sub" id="nc">لم يُحدد أحد</span><div class="acts">${pend.length ? `<button class="btn sec" id="dp">${ico("x")}حذف المعلقة (${pend.length})</button>` : ""}<button class="btn sec" id="pv">معاينة الرسالة</button><button class="btn" id="qq" disabled>${ico("send")}إدراج في الطابور</button>${status && status.configured ? `<button class="btn sec" id="sn">إرسال الطابور الآن</button>` : ""}</div></div>`;
     const sel = () => $$("[data-st]:checked", body).map((x) => x.dataset.st);
     const upd = () => { const n = sel().length; $("#nc", body).textContent = n ? `${n} محدد · رسالة فردية لكل ولي أمر` : "لم يُحدد أحد"; $("#qq", body).disabled = !n; };
     $$("[data-st]", body).forEach((x) => (x.onchange = upd));
@@ -172,6 +173,14 @@ PAGES.messages = () => boot("messages.html", async (main, c) => {
     $("#qq", body).onclick = async () => { const ids = sel();
       if (!(await confirmBox("إدراج إشعارات الغياب", `سيُنشأ ${ids.length} إشعار فردي، لكل منها رابط آمن خاص بالطالب.`, { okText: "إدراج" }))) return;
       try { const r = await rpc("ind_queue_absence_notices", { p_day: D.value, p_students: ids }); toast(`بالطابور ${r.queued} · بلا رقم ${r.no_phone} · مكرر ${r.duplicates}`); load(); } catch (e) { toast(mapErr(e), true); } };
+    const del = async (ids, title) => {
+      if (!(await confirmBox(title, `${ids.length === 1 ? "لن يُرسل هذا الإشعار" : `لن تُرسل ${ids.length} إشعارات`}، ويمكن إدراجه من جديد لاحقاً. يبقى أثر الحذف في سجل العمليات.`, { okText: "حذف", danger: true }))) return;
+      const res = await Promise.allSettled(ids.map((id) => rpc("ind_notification_cancel", { p_id: id })));
+      const bad = res.filter((x) => x.status === "rejected").length;
+      toast(bad ? `حُذف ${ids.length - bad} · تعذر ${bad}` : `حُذف ${ids.length} إشعار`, !!bad); load();
+    };
+    $$("[data-del]", body).forEach((b) => (b.onclick = () => del([b.dataset.del], "حذف الإشعار المعلق")));
+    const dp = $("#dp", body); if (dp) dp.onclick = () => del(pend.map((r) => r.notice.id), "حذف جميع الإشعارات المعلقة");
     const sn = $("#sn", body); if (sn) sn.onclick = () => sendNow().then(load);
   };
   G.onchange = () => { fillS(); load(); }; S.onchange = load; D.onchange = load; fillS(); load();

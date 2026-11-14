@@ -103,7 +103,7 @@ const TASK = { absence: "تسجيل الغياب", lateness: "تسجيل الت�
 const ROLE = { coordinator: "منسق الغياب", affairs: "شؤون الطلاب", portal_admin: "مدير البوابة" };
 const FN = (name) => APP_CONFIG.supabaseUrl + "/functions/v1/" + name;
 const EXC = { submitted: ["عذر مقدم", "info"], under_review: ["قيد المراجعة", "warn"], approved: ["معتمد", "ok"], rejected: ["غير معتمد", "bad"] };
-const NST = { queued: ["بانتظار الإرسال", "warn"], sending: ["قيد الإرسال", "warn"], no_phone: ["لا يوجد رقم", "bad"], sent: ["قبلها واتساب", "info"], delivered: ["وصلت", "ok"], read: ["قُرئت", "ok"], failed: ["فشل الإرسال", "bad"], cancelled: ["ملغاة", ""] };
+const NST = { queued: ["بانتظار الإرسال", "warn"], sending: ["قيد الإرسال", "warn"], no_phone: ["لا يوجد رقم", "bad"], sent: ["قبلها واتساب", "info"], delivered: ["وصلت", "ok"], read: ["قُرئت", "ok"], failed: ["فشل الإرسال", "bad"], cancelled: ["محذوفة", ""] };
 const NKIND = { absence: "إشعار غياب", lateness: "إشعار تأخر", lateness_repeat: "تكرار التأخر", escalation: "إجراء نظامي", excuse_received: "استلام عذر", excuse_result: "نتيجة العذر" };
 const badge = (m, k) => { const [t, c] = m[k] || [k, ""]; return `<span class="badge ${c}">${esc(t)}</span>`; };
 async function copyText(t) { try { await navigator.clipboard.writeText(t); toast("نُسخ"); } catch (_) { prompt("انسخ الرابط:", t); } }

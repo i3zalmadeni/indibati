@@ -112,6 +112,14 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   await p.check("#ca"); await shot(p, "15a-before-queue"); await p.click("#qq"); await p.click(".md #ok"); await p.waitForSelector(".toast");
   ok((await p.textContent(".toast")).includes("بالطابور"), "إدراج إشعارات الغياب في الطابور");
   await shot(p, "15-notify-compose");
+  await p.waitForSelector("[data-del]"); const nDel = (await p.$$("[data-del]")).length;
+  ok(nDel >= 1 && (await p.textContent("#dp")).includes(`(${nDel})`), "زر حذف لكل إشعار معلق، وحذف الجميع بعددها");
+  await p.click("[data-del]"); await p.click(".md #ok"); await p.waitForTimeout(600);
+  ok((await p.$$("[data-del]")).length === nDel - 1 && (await p.$$("[data-st]")).length === 1, "حذف إشعار معلق يعيد الطالب قابلاً للإدراج");
+  await p.click("#dp"); await p.click(".md #ok"); await p.waitForTimeout(600);
+  ok((await p.$$("[data-del]")).length === 0 && !(await p.$("#dp")), "حذف جميع الإشعارات المعلقة");
+  await p.check("#ca"); await p.click("#qq"); await p.click(".md #ok"); await p.waitForTimeout(600);
+  ok((await p.$$("[data-del]")).length === nDel, "إعادة الإدراج بعد الحذف");
   await p.goto(`${BASE}/notifications.html?tab=log`); await p.waitForSelector("#ll table");
   ok((await p.textContent("#ll")).includes("بانتظار الإرسال") && !(await p.textContent("#ll")).includes("قبلها واتساب"), "لا يُدّعى الإرسال قبل الربط");
   await shot(p, "16-notify-log");
@@ -125,6 +133,13 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   const hasAbs = await g.$("[data-i]");
   if (hasAbs) {
     await g.click("[data-i]"); await g.selectOption(".md #gr", { index: 1 }); await g.fill(".md #gd", "كان مريضاً");
+    ok((await g.textContent(".md #gfh")).includes("5 ميجابايت لكل مرفق") && (await g.textContent(".md #gfh")).includes("PDF"), "وصف المرفق: الصيغ والحد 5 ميجابايت");
+    await g.setInputFiles(".md #gf", { name: "x.docx", mimeType: "application/msword", buffer: Buffer.from("PK") }); await g.click(".md #ok");
+    ok((await g.textContent(".md #ge")).includes("صيغة غير مقبولة"), "رفض صيغة غير مقبولة قبل الرفع");
+    await g.setInputFiles(".md #gf", { name: "big.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(5 * 1024 * 1024 + 10) }); await g.click(".md #ok");
+    ok((await g.textContent(".md #ge")).includes("أكبر من 5 ميجابايت"), "رفض ملف أكبر من 5 ميجابايت");
+    await g.setInputFiles(".md #gf", [{ name: "a.png", mimeType: "image/png", buffer: Buffer.from("x") }, { name: "b.pdf", mimeType: "application/pdf", buffer: Buffer.from("x") }]);
+    ok((await g.$$(".md #gfl li")).length === 2, "قائمة الملفات المختارة بأحجامها"); await shot(g, "18a-guardian-attach");
     await g.setInputFiles(".md #gf", { name: "excuse.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 test") });
     await g.click(".md #ok"); await g.waitForSelector(".toast"); ok((await g.textContent(".toast")).includes("وصل"), "ولي الأمر يقدم العذر بمرفق");
   } else ok(false, "لا غياب للطالب في البوابة");
