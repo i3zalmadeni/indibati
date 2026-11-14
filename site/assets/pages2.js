@@ -49,7 +49,7 @@ PAGES.student = () => boot("student.html", async (main, c) => {
   const f = await rpc("ind_student_file", { p_student: id }), s = f.student, A = f.absence, L = f.lateness;
   document.title = s.name + " – الملف الانضباطي – انضباطي";
   main.innerHTML = `<div class="card"><div class="row2"><div><h2 style="margin:0">${esc(s.name)}</h2><p class="sub" style="margin:4px 0">${esc(s.grade || "")} – ${esc(s.section || "")} · رقم الطالب <span class="mono">${esc(s.no || "")}</span></p>
-      <p class="sub" style="margin:0">ولي الأمر: ${s.has_guardian ? (s.has_phone ? '<span class="badge ok">مسجل برقم جوال</span>' : '<span class="badge warn">مسجل بلا رقم</span>') : '<span class="badge bad">غير مسجل في النواة</span>'}</p></div>
+      <p class="sub" style="margin:0">جوال ولي الأمر: ${s.has_phone ? `<span class="badge ok">${s.phone_source === "core" ? "مسجل في النواة الرقمية" : "مسجل برقم ولي الأمر"}</span>` : '<span class="badge bad">لا يوجد رقم في النواة</span>'}</p></div>
     <div class="acts">${f.can_link ? `<button class="btn sm sec" id="gl">${ico("copy")}رابط ولي الأمر</button>` : ""}<button class="btn sm sec" onclick="print()">${ico("print")}طباعة</button></div></div></div>
     <div class="kgrid mt">
       <div class="kpi k3"><div class="ic">${ico("file")}</div><div><b class="mono">${A.excused}</b><span>غياب بعذر</span></div></div>
@@ -161,7 +161,7 @@ PAGES.messages = () => boot("messages.html", async (main, c) => {
     $("#nl", body).innerHTML = `<div class="row2"><label class="chk"><input type="checkbox" id="ca">تحديد جميع من لم يُشعَر</label><span class="sub">${rows.length} غائب · ${rows.filter((r) => !r.has_phone).length} بلا رقم جوال</span></div>
       <div class="tw"><table class="tbl"><thead><tr><th></th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>ولي الأمر</th><th>الإشعار</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.notice && r.notice.status !== "cancelled" ? "" : `<input type="checkbox" data-st="${r.student_id}" aria-label="${esc(r.name)}">`}</td>
       <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}</td><td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td>
-      <td>${esc(r.guardian || "—")} ${r.has_phone ? "" : '<span class="badge bad">لا رقم</span>'}</td><td>${r.notice ? badge(NST, r.notice.status) : "—"}</td></tr>`).join("")}</tbody></table></div>
+      <td>${esc(r.guardian || "ولي أمر الطالب")} ${r.has_phone ? (r.phone_source === "core" ? '<span class="badge">رقم النواة</span>' : "") : '<span class="badge bad">لا رقم</span>'}</td><td>${r.notice ? badge(NST, r.notice.status) : "—"}</td></tr>`).join("")}</tbody></table></div>
       <div class="savebar"><span class="sub" id="nc">لم يُحدد أحد</span><div class="acts"><button class="btn sec" id="pv">معاينة الرسالة</button><button class="btn" id="qq" disabled>${ico("send")}إدراج في الطابور</button>${status && status.configured ? `<button class="btn sec" id="sn">إرسال الطابور الآن</button>` : ""}</div></div>`;
     const sel = () => $$("[data-st]:checked", body).map((x) => x.dataset.st);
     const upd = () => { const n = sel().length; $("#nc", body).textContent = n ? `${n} محدد · رسالة فردية لكل ولي أمر` : "لم يُحدد أحد"; $("#qq", body).disabled = !n; };

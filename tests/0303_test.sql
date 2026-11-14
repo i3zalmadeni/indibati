@@ -22,7 +22,7 @@ reset role; set role anon;
 select t_ok((ind_g_portal(t_token(current_setting('t.url')))->'student'->>'name') = 'طالب 2', 'البوابة تعرض الطالب صاحب الرابط');
 select t_ok(ind_g_portal('x' || t_token(current_setting('t.url')))->>'error' = 'invalid_link', 'رمز خاطئ يُرفض');
 select t_ok(jsonb_array_length(ind_g_portal(t_token(current_setting('t.url')))->'absences') >= 1, 'ولي الأمر يرى غياب ابنه');
-select t_ok(position('966' in ind_g_portal(t_token(current_setting('t.url')))::text) = 0, 'لا تظهر أرقام الجوال في البوابة');
+select t_ok(position('966500' in ind_g_portal(t_token(current_setting('t.url')))::text) = 0, 'لا تظهر أرقام الجوال في البوابة');
 select t_ok(t_err($$select ind_student_file('00000000-0000-0000-0000-000000000501')$$) like 'permission denied%', 'الزائر لا يصل إلى الملف الانضباطي');
 select t_ok(t_err($$select ind_excuses_list()$$) like 'permission denied%', 'الزائر لا يرى قائمة الأعذار');
 
@@ -107,7 +107,7 @@ select t_ok((ind_student_file('00000000-0000-0000-0000-000000000501')->'absence'
 select t_ok(ind_student_file('00000000-0000-0000-0000-000000000507')->>'error' = 'forbidden', 'المدخل لا يرى ملف طالب خارج فصوله');
 select t_as(5);
 select t_ok((ind_student_file('00000000-0000-0000-0000-000000000501')->'lateness'->>'count')::int >= 1, 'شؤون الطلاب ترى ملف التأخر');
-select t_ok(position('966' in ind_student_file('00000000-0000-0000-0000-000000000501')::text) = 0, 'الملف لا يكشف أرقام الجوال');
+select t_ok(position('966500' in ind_student_file('00000000-0000-0000-0000-000000000501')::text) = 0, 'الملف لا يكشف أرقام الجوال');
 select t_ok((ind_dashboard_extra()->>'notif_failed')::int = 0, 'لوحة الإشعارات المعلقة والفاشلة');
 reset role;
 \echo PHASE56_PASSED

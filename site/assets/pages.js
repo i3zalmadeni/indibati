@@ -18,7 +18,7 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
     const [d, ab] = await Promise.all([rpc("ind_dashboard", { p_day: day }), rpc("ind_day_absentees", { p_day: day })]);
     const maxW = Math.max(1, ...d.week.map((x) => Math.max(x.absent, x.late)));
     const pend = d.sections.filter((s) => !s.saved), unl = d.sections.filter((s) => s.saved && !s.locked);
-    const XS = { submitted: ["عذر جديد", "warn"], under_review: ["قيد المراجعة", "warn"], approved: ["عذر معتمد", "ok"], rejected: ["عذر مرفوض", "bad"] };
+    var XS = { submitted: ["عذر جديد", "warn"], under_review: ["قيد المراجعة", "warn"], approved: ["عذر معتمد", "ok"], rejected: ["عذر مرفوض", "bad"] };
     html += `<h2 class="sec">${notToday ? "آخر يوم دراسي" : "اليوم"} <small class="sub">${esc(fmtBoth(day))}</small></h2>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
       <div class="card"><div class="row2"><h3 class="sec" style="margin:0">${ico("check")} لم يكتمل تحضيرها (${pend.length})</h3><a class="btn sm sec" href="attendance.html">التحضير</a></div>
@@ -35,12 +35,12 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
       <div class="kpi k5"><div class="ic">${ico("x")}</div><div><b class="mono">${d.unexcused}</b><span>غائب بدون عذر</span></div></div>
       <div class="kpi k1"><div class="ic">${ico("clock")}</div><div><b class="mono">${d.late}</b><span>حالة تأخر</span></div></div>
     </div>
-    <div class="card mt"><div class="row2"><h3 class="sec" style="margin:0">${ico("users")} الغائبون (${ab.length})</h3>
+    <div class="card mt"><div class="row2"><h3 class="sec" style="margin:0">${ico("users")} الغائبون (<span id="abn">${ab.length}</span>)</h3>
       <div class="acts">${ab.length && c.isCoord ? `<a class="btn sm" href="messages.html?d=${day}">${ico("send")}رسائل الغياب</a>` : ""}${ab.length ? `<button class="btn sm sec" id="abx">${ico("file")}تصدير</button>` : ""}</div></div>
-      ${ab.length ? `<div class="tw mt"><table class="tbl"><thead><tr><th>#</th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>العذر</th></tr></thead><tbody>${ab.map((r, i) => `<tr><td class="mono">${i + 1}</td>
-        <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}${r.locked ? "" : ' <span class="badge warn">غير مثبت</span>'}</td>
-        <td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td><td>${r.excuse ? `<span class="badge ${XS[r.excuse][1]}">${XS[r.excuse][0]}</span>` : "—"}</td></tr>`).join("")}</tbody></table></div>`
-        : `<p class="sub">${d.sections.some((x) => x.saved) ? "لا غائبين مسجلين." : "لم يبدأ التحضير بعد."}</p>`}</div>
+      ${ab.length ? `<div class="pickbar mt"><div><label for="afg">الصف</label><select id="afg"><option value="">جميع الصفوف</option>${meta.grades.map((g) => `<option value="${g.code}">${esc(g.name)}</option>`).join("")}</select></div>
+        <div><label for="afs">الفصل</label><select id="afs"></select></div>
+        <div><label for="aft">الحالة</label><select id="aft"><option value="">جميع الحالات</option><option value="absent_unexcused">${STATUS.absent_unexcused}</option><option value="absent_excused">${STATUS.absent_excused}</option></select></div></div>
+        <div id="abt"></div>` : `<p class="sub">${d.sections.some((x) => x.saved) ? "لا غائبين مسجلين." : "لم يبدأ التحضير بعد."}</p>`}</div>
     <div id="dx"></div>
     <div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
       <div class="card"><h3 class="sec" style="margin-top:0">آخر سبعة أيام</h3><div class="bars">${d.week.map((x) => `<div class="br"><span>${esc(fmtShortDay(x.day))}</span><span><i style="width:${(100 * x.absent) / maxW}%" title="غياب ${x.absent}"></i><i class="l" style="width:${(100 * x.late) / maxW}%;margin-top:3px" title="تأخر ${x.late}"></i></span><small class="mono">${x.absent}/${x.late}</small></div>`).join("")}</div>
@@ -51,7 +51,20 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
   }
   if (!html) html = empty("inbox", "لا مهام مسندة إليك في انضباطي", "يُسند منسق الغياب فصول تسجيل الغياب أو التأخر من «إدارة التكليفات». راجعه إن كنت مكلفاً.");
   main.innerHTML = html;
-  if ($("#abx")) $("#abx").onclick = () => exportCSV("الغائبون", ["الطالب", "رقم الطالب", "الفصل", "الحالة", "العذر"], ABX.map((r) => [r.name, r.no, r.label, STATUS[r.status], r.excuse || ""]));
+  if ($("#abt")) {
+    const SG = Object.fromEntries(meta.sections.map((x) => [x.id, x.grade]));
+    const FG = $("#afg"), FS = $("#afs"), FT = $("#aft"); let shown = ABX;
+    const fillS = () => { FS.innerHTML = '<option value="">جميع الفصول</option>' + meta.sections.filter((x) => !FG.value || x.grade === FG.value).filter((x) => ABX.some((r) => r.section_id === x.id)).map((x) => `<option value="${x.id}">${esc(x.label)}</option>`).join(""); };
+    const draw = () => {
+      shown = ABX.filter((r) => (!FG.value || SG[r.section_id] === FG.value) && (!FS.value || r.section_id === FS.value) && (!FT.value || r.status === FT.value));
+      $("#abn").textContent = shown.length === ABX.length ? ABX.length : `${shown.length} من ${ABX.length}`;
+      $("#abt").innerHTML = shown.length ? `<div class="tw mt"><table class="tbl"><thead><tr><th>#</th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>العذر</th></tr></thead><tbody>${shown.map((r, i) => `<tr><td class="mono">${i + 1}</td>
+        <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}${r.locked ? "" : ' <span class="badge warn">غير مثبت</span>'}</td>
+        <td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td><td>${r.excuse ? `<span class="badge ${XS[r.excuse][1]}">${XS[r.excuse][0]}</span>` : "—"}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub mt">لا غائبين بهذا الفرز.</p>';
+    };
+    FG.onchange = () => { fillS(); draw(); }; FS.onchange = draw; FT.onchange = draw; fillS(); draw();
+    $("#abx").onclick = () => exportCSV("الغائبون", ["الطالب", "رقم الطالب", "الفصل", "الحالة", "العذر"], shown.map((r) => [r.name, r.no, r.label, STATUS[r.status], r.excuse ? XS[r.excuse][0] : ""]));
+  }
   if (c.oversee) { try { const x = await rpc("ind_dashboard_extra");
     $("#dx").innerHTML = `<div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
       <a class="card" href="excuses.html" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.excuses_new}</b><br><span class="sub">عذر جديد بانتظار المراجعة</span></a>

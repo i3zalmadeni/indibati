@@ -19,6 +19,7 @@ create table public.student_enrollments (id uuid primary key default gen_random_
 create table public.staff_members (id uuid primary key default gen_random_uuid(), user_id uuid, full_name text, category text, job_title text, specialty text, qualification text, account_status text, joined_on date, source_type text, created_by uuid, created_at timestamptz default now(), updated_at timestamptz default now(), employment_status text, department text, photo_path text, is_active boolean default true, publish_public boolean default false, public_photo_path text);
 create table public.staff_roles (id uuid primary key default gen_random_uuid(), staff_id uuid references public.staff_members, role_code text, system_code text, started_on date, ended_on date);
 create table public.guardians (id uuid primary key default gen_random_uuid(), full_name text, phone text, phone_alt text, email text, created_at timestamptz default now(), updated_at timestamptz default now());
+create table public.student_private (student_id uuid primary key references public.students, phone text, address text, updated_at timestamptz default now());
 create table public.student_guardians (student_id uuid references public.students, guardian_id uuid references public.guardians, relation text, is_primary boolean, primary key (student_id, guardian_id));
 
 create or replace function public.is_core_admin() returns boolean language sql stable security definer set search_path to '' as $$

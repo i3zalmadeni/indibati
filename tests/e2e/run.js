@@ -55,6 +55,13 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   ok(dtxt.includes("لم يكتمل تحضيرها") && dtxt.includes("حُضّرت ولم تُثبَّت") && dtxt.includes("إحصائيات الغياب"), "الرئيسية: الفصول غير المكتملة وغير المثبتة والإحصائيات");
   ok((await p.$$("#main table tbody tr")).length >= 1 && (await p.textContent("#main table")).includes("الفصل"), "الرئيسية: قائمة الغائبين مع الفصل");
   ok(!!(await p.$('#main a[href^="messages.html?d="]')), "الرئيسية: رابط رسائل الغياب");
+  const abAll = (await p.$$("#abt tbody tr")).length;
+  await p.selectOption("#aft", "absent_unexcused"); const abU = (await p.$$("#abt tbody tr")).length;
+  ok(abU < abAll && (await p.$$eval("#abt tbody tr td:nth-child(4)", (t) => t.every((x) => x.textContent.includes("بدون عذر")))), "فرز الغائبين بالحالة");
+  await p.selectOption("#aft", ""); await p.selectOption("#afg", "m2");
+  ok((await p.$$("#abt tbody tr")).length === 0 && (await p.textContent("#abt")).includes("لا غائبين بهذا الفرز"), "فرز الغائبين بالصف");
+  await p.selectOption("#afg", "m1"); ok((await p.$$("#afs option")).length >= 2 && (await p.$$("#abt tbody tr")).length === abAll, "فرز الغائبين بالصف والفصل");
+  await shot(p, "04b-dashboard-filter");
   await p.goto(`${BASE}/locks.html?d=${D}`); await p.waitForSelector(".secgrid");
   ok((await p.$$(".sec-c")).length === 6, "المنسق يرى جميع الفصول (6)");
   ok(!!(await p.$(`#la a[href="messages.html?d=${D}"]`)), "شاشة التثبيت: زر رسائل الغياب لليوم");

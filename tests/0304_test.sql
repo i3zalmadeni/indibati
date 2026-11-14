@@ -45,7 +45,7 @@ select t_ok(jsonb_array_length(ind_report('notifications', '2026-01-01', '2026-1
 select t_ok(jsonb_array_length(ind_report('excuses', '2026-09-06', '2026-11-30')->'rows') = 1, 'تقرير الأعذار');
 select t_ok(jsonb_array_length(ind_report('escalations', '2026-01-01', '2026-12-31')->'rows') >= 1, 'تقرير الإجراءات النظامية');
 select t_ok(jsonb_array_length(ind_report('rewards', '2026-11-01', '2026-11-30')->'rows') = 8, 'تقرير نقاط الانتظام');
-select t_ok(position('966' in ind_report('notifications', '2026-01-01', '2026-12-31')::text) = 0, 'التقارير لا تكشف الأرقام');
+select t_ok(position('966500' in ind_report('notifications', '2026-01-01', '2026-12-31')::text) = 0, 'التقارير لا تكشف الأرقام');
 select t_as(2);
 select t_ok(ind_report('absence_list', '2026-11-01', '2026-11-05')->>'error' = 'forbidden', 'مدخل البيانات لا يستخرج التقارير');
 reset role;

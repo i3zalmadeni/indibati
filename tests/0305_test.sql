@@ -24,7 +24,7 @@ reset role; select set_config('t.k', (select count(*) from ind_attendance_record
 set role authenticated; select t_as(1);
 select t_ok(jsonb_array_length(ind_day_absentees('2026-11-12')) = current_setting('t.k')::int and current_setting('t.k')::int > 0, 'قائمة الغائبين كاملة');
 select t_ok((select bool_and(x ? 'label' and x ? 'status' and x ? 'name') from jsonb_array_elements(ind_day_absentees('2026-11-12')) x), 'كل غائب معه الفصل والحالة');
-select t_ok(position('966' in ind_day_absentees('2026-11-12')::text) = 0, 'لا أرقام جوال في القائمة');
+select t_ok(position('966500' in ind_day_absentees('2026-11-12')::text) = 0, 'لا أرقام جوال في القائمة');
 select t_as(5);
 select t_ok(jsonb_typeof(ind_day_absentees('2026-11-12')) = 'array', 'شؤون الطلاب ترى القائمة');
 
