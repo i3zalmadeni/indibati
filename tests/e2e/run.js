@@ -49,8 +49,15 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   // 4) المنسق: لوحة، تثبيت، إلغاء تثبيت بسبب
   p = await open(U(1));
   await p.goto(`${BASE}/dashboard.html`); await p.waitForSelector(".kgrid"); await shot(p, "04-dashboard-coord");
+  const navOrder = await p.$$eval(".dnav-in a", (a) => a.map((x) => x.getAttribute("href")));
+  ok(navOrder.slice(0, 6).join() === "dashboard.html,attendance.html,locks.html,messages.html,excuses.html,lateness.html" && navOrder.slice(-2).join() === "settings.html,notifications.html", "ترتيب القائمة: التحضير، التثبيت، رسائل الغياب، الأعذار، التأخر … الإعدادات، الإشعارات");
+  const dtxt = await p.textContent("#main");
+  ok(dtxt.includes("لم يكتمل تحضيرها") && dtxt.includes("حُضّرت ولم تُثبَّت") && dtxt.includes("إحصائيات الغياب"), "الرئيسية: الفصول غير المكتملة وغير المثبتة والإحصائيات");
+  ok((await p.$$("#main table tbody tr")).length >= 1 && (await p.textContent("#main table")).includes("الفصل"), "الرئيسية: قائمة الغائبين مع الفصل");
+  ok(!!(await p.$('#main a[href^="messages.html?d="]')), "الرئيسية: رابط رسائل الغياب");
   await p.goto(`${BASE}/locks.html?d=${D}`); await p.waitForSelector(".secgrid");
   ok((await p.$$(".sec-c")).length === 6, "المنسق يرى جميع الفصول (6)");
+  ok(!!(await p.$(`#la a[href="messages.html?d=${D}"]`)), "شاشة التثبيت: زر رسائل الغياب لليوم");
   await shot(p, "05-locks-coord");
   await p.click('[data-s="00000000-0000-0000-0000-000000000c11"]'); await p.click("#uSel");
   await p.click(".md #ok"); ok((await p.textContent(".md #ce")) === "السبب مطلوب.", "سبب إلغاء التثبيت إلزامي في الواجهة");
@@ -91,7 +98,8 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   await p.goto(`${BASE}/index.html`); await shot(p, "13-index");
   // 7) المرحلتان 5 و6: إشعارات الغياب، ورابط ولي الأمر، والعذر، والاعتماد، والملف، والإجراءات
   p = await open(U(1));
-  await p.goto(`${BASE}/notifications.html?tab=compose`); await p.waitForSelector("#nd");
+  await p.goto(`${BASE}/messages.html?d=${D}`); await p.waitForSelector("#nd");
+  ok((await p.inputValue("#nd")) === D, "صفحة رسائل الغياب تفتح على تاريخ التثبيت");
   await p.fill("#nd", D); await p.dispatchEvent("#nd", "change"); await p.waitForSelector("#ca");
   ok((await p.textContent("#nl")).includes("لا رقم"), "تمييز من لا رقم لولي أمره");
   await p.check("#ca"); await shot(p, "15a-before-queue"); await p.click("#qq"); await p.click(".md #ok"); await p.waitForSelector(".toast");
@@ -116,6 +124,8 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   await shot(g, "18-guardian");
   ok(g.errs.length === 0, "لا أخطاء JavaScript (ولي الأمر): " + g.errs.join(" | "));
   const g2 = await open(null); await g2.goto(`${BASE}/guardian.html?t=${"0".repeat(64)}`); await g2.waitForSelector(".err"); ok((await g2.textContent(".err")).includes("غير صالح"), "رفض الرابط غير الصالح");
+  await p.goto(`${BASE}/dashboard.html`); await p.waitForSelector('.dnav-in a[href="excuses.html"] .bdg');
+  ok((await p.textContent('.dnav-in a[href="excuses.html"] .bdg')) === "1", "شارة الأعذار: عذر واحد لم يُبت فيه");
   await p.goto(`${BASE}/excuses.html`); await p.waitForSelector("[data-o]"); await p.click("[data-o]"); await p.waitForSelector(".md [data-d=approved]");
   await shot(p, "19-excuse-review"); await p.click(".md [data-d=approved]"); await p.waitForSelector(".toast");
   await p.goto(`${BASE}/student.html?id=${sid}`); await p.waitForSelector(".kgrid");

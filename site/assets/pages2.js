@@ -73,46 +73,10 @@ PAGES.student = () => boot("student.html", async (main, c) => {
 // ============================== مركز الإشعارات ==============================
 PAGES.notifications = () => boot("notifications.html", async (main, c) => {
   const list = [["log", "سجل الرسائل", "list"]];
-  if (c.isCoord) list.unshift(["compose", "إشعارات الغياب", "send"]);
   if (c.isCoord || c.isPortal) list.push(["templates", "القوالب", "file"], ["config", "الإعدادات والربط", "gear"]);
-  let status = null; try { const r = await fetch(FN("ind-notify") + "/status"); status = r.ok ? await r.json() : null; } catch (_) {}
+  const status = await notifyStatus();
     tabs(main, list, async (k, body) => {
     const banner = status && status.configured ? "" : `<p class="note">${ico("info")} لم يُربط WhatsApp Business بعد. الرسائل تُحفظ في الطابور بحالة «بانتظار الإرسال» ولا يُدّعى إرسالها، وتُرسل فور الربط.</p>`;
-    if (k === "compose") {
-      const meta = await rpc("ind_meta", { p_task: "view" });
-      body.innerHTML = `${banner}<div class="card"><div class="pickbar"><div><label for="nd">التاريخ</label><input type="date" id="nd" max="${meta.today}" value="${lastSchoolDay(meta)}"></div>
-        <div><label for="ng">الصف</label><select id="ng"><option value="">جميع الصفوف</option>${meta.grades.map((g) => `<option value="${g.code}">${esc(g.name)}</option>`).join("")}</select></div>
-        <div><label for="ns">الفصل</label><select id="ns"><option value="">جميع الفصول</option></select></div></div><div id="nl"></div></div>`;
-      const G = $("#ng", body), S = $("#ns", body), D = $("#nd", body);
-      const fillS = () => { S.innerHTML = '<option value="">جميع الفصول</option>' + meta.sections.filter((x) => !G.value || x.grade === G.value).map((x) => `<option value="${x.id}">${esc(x.label)}</option>`).join(""); };
-      let seq = 0;
-      const load = async () => {
-        const my = ++seq;
-        $("#nl", body).innerHTML = loading();
-        const rows = await rpc("ind_notice_candidates", { p_day: D.value, p_scope: S.value ? "list" : G.value ? "grade" : "all", p_sections: S.value ? [S.value] : null, p_grade: G.value || null });
-        if (my !== seq) return;
-        if (!rows.length) { $("#nl", body).innerHTML = empty("check", "لا غائبين مسجلين في هذا النطاق", "تأكد من حفظ التحضير أولاً."); return; }
-        if (my !== seq) return;
-        const tpl = (await rpc("ind_templates_list")).find((t) => t.code === "absence");
-        if (my !== seq) return;
-        $("#nl", body).innerHTML = `<div class="row2"><label class="chk"><input type="checkbox" id="ca">تحديد جميع من لم يُشعَر</label><span class="sub">${rows.length} غائب · ${rows.filter((r) => !r.has_phone).length} بلا رقم جوال</span></div>
-          <div class="tw"><table class="tbl"><thead><tr><th></th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>ولي الأمر</th><th>الإشعار</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.notice && r.notice.status !== "cancelled" ? "" : `<input type="checkbox" data-st="${r.student_id}" aria-label="${esc(r.name)}">`}</td>
-          <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}</td><td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td>
-          <td>${esc(r.guardian || "—")} ${r.has_phone ? "" : '<span class="badge bad">لا رقم</span>'}</td><td>${r.notice ? badge(NST, r.notice.status) : "—"}</td></tr>`).join("")}</tbody></table></div>
-          <div class="savebar"><span class="sub" id="nc">لم يُحدد أحد</span><div class="acts"><button class="btn sec" id="pv">معاينة الرسالة</button><button class="btn" id="qq" disabled>${ico("send")}إدراج في الطابور</button>${status && status.configured ? `<button class="btn sec" id="sn">إرسال الطابور الآن</button>` : ""}</div></div>`;
-        const sel = () => $$("[data-st]:checked", body).map((x) => x.dataset.st);
-        const upd = () => { const n = sel().length; $("#nc", body).textContent = n ? `${n} محدد · رسالة فردية لكل ولي أمر` : "لم يُحدد أحد"; $("#qq", body).disabled = !n; };
-        $$("[data-st]", body).forEach((x) => (x.onchange = upd));
-        $("#ca", body).onchange = (e) => { $$("[data-st]", body).forEach((x) => (x.checked = e.target.checked)); upd(); };
-        $("#pv", body).onclick = () => { const ex = rows[0]; const txt = (tpl?.body || "").replace("{student}", ex.name).replace("{date}", fmtBoth(D.value)).replace("{link}", "‹رابط آمن خاص بالطالب›");
-          const md = modal(`<h3>معاينة رسالة الغياب</h3><div class="item" style="white-space:pre-wrap">${esc(txt)}</div><p class="sub">المعاينة لأول طالب. تُرسل عبر القالب المعتمد في WhatsApp${tpl?.wa_template ? ` (<span dir="ltr">${esc(tpl.wa_template)}</span>)` : " — لم يُربط بعد"}.</p><div class="acts mt"><button class="btn sec" id="cx">إغلاق</button></div>`); $("#cx", md.el).onclick = md.close; };
-        $("#qq", body).onclick = async () => { const ids = sel();
-          if (!(await confirmBox("إدراج إشعارات الغياب", `سيُنشأ ${ids.length} إشعار فردي، لكل منها رابط آمن خاص بالطالب.`, { okText: "إدراج" }))) return;
-          try { const r = await rpc("ind_queue_absence_notices", { p_day: D.value, p_students: ids }); toast(`بالطابور ${r.queued} · بلا رقم ${r.no_phone} · مكرر ${r.duplicates}`); load(); } catch (e) { toast(mapErr(e), true); } };
-        const sn = $("#sn", body); if (sn) sn.onclick = () => sendNow().then(load);
-      };
-      G.onchange = () => { fillS(); load(); }; S.onchange = load; D.onchange = load; fillS(); load();
-    }
     if (k === "log") {
       body.innerHTML = `${banner}<div class="card"><div class="pickbar"><div><label for="ls">الحالة</label><select id="ls"><option value="">الكل</option>${Object.entries(NST).map(([k2, v]) => `<option value="${k2}">${v[0]}</option>`).join("")}</select></div>
         <div><label for="lk">النوع</label><select id="lk"><option value="">الكل</option>${Object.entries(NKIND).map(([k2, v]) => `<option value="${k2}">${v}</option>`).join("")}</select></div>
@@ -163,13 +127,55 @@ PAGES.notifications = () => boot("notifications.html", async (main, c) => {
       $("#sv", body).onclick = async () => { try { await rpc("ind_set_notification_settings", { p: { lateness_repeat_threshold: +$("#c2", body).value, lateness_repeat_window_days: +$("#c3", body).value, escalation_notify: $("#c4", body).checked, portal_url: $("#c5", body)?.value } }); toast("حُفظت الإعدادات"); } catch (e) { toast(mapErr(e), true); } };
     }
   });
-  async function sendNow() {
-    const { data: { session } } = await sb.auth.getSession();
-    try { const r = await fetch(FN("ind-notify") + "/send?limit=100", { method: "POST", headers: { authorization: "Bearer " + session.access_token, apikey: APP_CONFIG.supabaseKey } });
-      const j = await r.json(); if (!r.ok) throw new Error(j.error || "فشل الطلب");
-      toast(j.configured ? `قبل واتساب ${j.sent} · فشل ${j.failed}` : j.note, !j.configured); } catch (e) { toast(mapErr(e), true); }
-  }
 }, { role: "oversee" });
+
+// ============================== رسائل الغياب ==============================
+// قائمة غائبي اليوم في نطاق، ثم إدراج رسالة فردية لكل ولي أمر برابط آمن لتقديم العذر
+async function sendNow() {
+  const { data: { session } } = await sb.auth.getSession();
+  try { const r = await fetch(FN("ind-notify") + "/send?limit=100", { method: "POST", headers: { authorization: "Bearer " + session.access_token, apikey: APP_CONFIG.supabaseKey } });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || "فشل الطلب");
+    toast(j.configured ? `قبل واتساب ${j.sent} · فشل ${j.failed}` : j.note, !j.configured); } catch (e) { toast(mapErr(e), true); }
+}
+async function notifyStatus() { try { const r = await fetch(FN("ind-notify") + "/status"); return r.ok ? await r.json() : null; } catch (_) { return null; } }
+PAGES.messages = () => boot("messages.html", async (main, c) => {
+  const status = await notifyStatus();
+  const banner = status && status.configured ? "" : `<p class="note">${ico("info")} لم يُربط الإرسال بعد. الرسائل تُحفظ في الطابور بحالة «بانتظار الإرسال» ولا يُدّعى إرسالها، وتُرسل فور الربط.</p>`;
+  const body = main;
+  const meta = await rpc("ind_meta", { p_task: "view" });
+  body.innerHTML = `${banner}<div class="card"><div class="pickbar"><div><label for="nd">التاريخ</label><input type="date" id="nd" max="${meta.today}" value="${esc(new URLSearchParams(location.search).get("d") || lastSchoolDay(meta))}"></div>
+    <div><label for="ng">الصف</label><select id="ng"><option value="">جميع الصفوف</option>${meta.grades.map((g) => `<option value="${g.code}">${esc(g.name)}</option>`).join("")}</select></div>
+    <div><label for="ns">الفصل</label><select id="ns"><option value="">جميع الفصول</option></select></div></div><div id="nl"></div></div>`;
+  const G = $("#ng", body), S = $("#ns", body), D = $("#nd", body);
+  const fillS = () => { S.innerHTML = '<option value="">جميع الفصول</option>' + meta.sections.filter((x) => !G.value || x.grade === G.value).map((x) => `<option value="${x.id}">${esc(x.label)}</option>`).join(""); };
+  let seq = 0;
+  const load = async () => {
+    const my = ++seq;
+    $("#nl", body).innerHTML = loading();
+    const rows = await rpc("ind_notice_candidates", { p_day: D.value, p_scope: S.value ? "list" : G.value ? "grade" : "all", p_sections: S.value ? [S.value] : null, p_grade: G.value || null });
+    if (my !== seq) return;
+    if (!rows.length) { $("#nl", body).innerHTML = empty("check", "لا غائبين مسجلين في هذا النطاق", "تأكد من حفظ التحضير أولاً."); return; }
+    if (my !== seq) return;
+    const tpl = (await rpc("ind_templates_list")).find((t) => t.code === "absence");
+    if (my !== seq) return;
+    $("#nl", body).innerHTML = `<div class="row2"><label class="chk"><input type="checkbox" id="ca">تحديد جميع من لم يُشعَر</label><span class="sub">${rows.length} غائب · ${rows.filter((r) => !r.has_phone).length} بلا رقم جوال</span></div>
+      <div class="tw"><table class="tbl"><thead><tr><th></th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>ولي الأمر</th><th>الإشعار</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.notice && r.notice.status !== "cancelled" ? "" : `<input type="checkbox" data-st="${r.student_id}" aria-label="${esc(r.name)}">`}</td>
+      <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}</td><td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td>
+      <td>${esc(r.guardian || "—")} ${r.has_phone ? "" : '<span class="badge bad">لا رقم</span>'}</td><td>${r.notice ? badge(NST, r.notice.status) : "—"}</td></tr>`).join("")}</tbody></table></div>
+      <div class="savebar"><span class="sub" id="nc">لم يُحدد أحد</span><div class="acts"><button class="btn sec" id="pv">معاينة الرسالة</button><button class="btn" id="qq" disabled>${ico("send")}إدراج في الطابور</button>${status && status.configured ? `<button class="btn sec" id="sn">إرسال الطابور الآن</button>` : ""}</div></div>`;
+    const sel = () => $$("[data-st]:checked", body).map((x) => x.dataset.st);
+    const upd = () => { const n = sel().length; $("#nc", body).textContent = n ? `${n} محدد · رسالة فردية لكل ولي أمر` : "لم يُحدد أحد"; $("#qq", body).disabled = !n; };
+    $$("[data-st]", body).forEach((x) => (x.onchange = upd));
+    $("#ca", body).onchange = (e) => { $$("[data-st]", body).forEach((x) => (x.checked = e.target.checked)); upd(); };
+    $("#pv", body).onclick = () => { const ex = rows[0]; const txt = (tpl?.body || "").replace("{student}", ex.name).replace("{date}", fmtBoth(D.value)).replace("{link}", "‹رابط آمن خاص بالطالب›");
+      const md = modal(`<h3>معاينة رسالة الغياب</h3><div class="item" style="white-space:pre-wrap">${esc(txt)}</div><p class="sub">المعاينة لأول طالب. تُرسل عبر القالب المعتمد في WhatsApp${tpl?.wa_template ? ` (<span dir="ltr">${esc(tpl.wa_template)}</span>)` : " — لم يُربط بعد"}.</p><div class="acts mt"><button class="btn sec" id="cx">إغلاق</button></div>`); $("#cx", md.el).onclick = md.close; };
+    $("#qq", body).onclick = async () => { const ids = sel();
+      if (!(await confirmBox("إدراج إشعارات الغياب", `سيُنشأ ${ids.length} إشعار فردي، لكل منها رابط آمن خاص بالطالب.`, { okText: "إدراج" }))) return;
+      try { const r = await rpc("ind_queue_absence_notices", { p_day: D.value, p_students: ids }); toast(`بالطابور ${r.queued} · بلا رقم ${r.no_phone} · مكرر ${r.duplicates}`); load(); } catch (e) { toast(mapErr(e), true); } };
+    const sn = $("#sn", body); if (sn) sn.onclick = () => sendNow().then(load);
+  };
+  G.onchange = () => { fillS(); load(); }; S.onchange = load; D.onchange = load; fillS(); load();
+}, { role: "coord" });
 
 // ============================== الإجراءات النظامية ==============================
 PAGES.escalations = () => boot("escalations.html", async (main, c) => {

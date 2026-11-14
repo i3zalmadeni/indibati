@@ -158,16 +158,27 @@ const NAV = [
   ["dashboard.html", "الرئيسية", "grid", "ملخص اليوم ومهامك", "all"],
   ["attendance.html", "التحضير", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence"],
   ["locks.html", "التثبيت", "lock", "حالة التحضير والتثبيت لكل فصل وتاريخ", "absence"],
+  ["messages.html", "رسائل الغياب", "send", "إشعار أولياء أمور الغائبين برسالة فردية فيها رابط آمن لتقديم العذر", "coord"],
   ["excuses.html", "الأعذار", "file", "أعذار الغياب المقدمة من أولياء الأمور ومراجعتها", "oversee"],
-  ["notifications.html", "الإشعارات", "bell", "رسائل أولياء الأمور عبر واتساب: الإعداد والإرسال والمتابعة", "oversee"],
   ["lateness.html", "التأخر", "clock", "تسجيل حالات التأخر الصباحي ومتابعتها", "lateness"],
   ["student.html", "الملفات", "user", "سجل الطالب التراكمي: الغياب والتأخر والأعذار والإشعارات والإجراءات", "oversee"],
   ["reports.html", "التقارير", "chart", "تقارير الحضور والغياب والتأخر والإشعارات والأعذار والإجراءات والنقاط، مع التصدير والطباعة", "oversee"],
   ["escalations.html", "الإجراءات", "flag", "إشعارات الغياب النظامية وحدودها وطباعتها", "oversee"],
   ["assignments.html", "التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord"],
-  ["settings.html", "الإعدادات", "gear", "إعدادات التأخر والتحضير والأسباب والأدوار", "admin"],
   ["audit.html", "السجل", "list", "كل عملية مسجلة بالمستخدم والوقت والقيم السابقة والجديدة", "admin"],
+  ["settings.html", "الإعدادات", "gear", "إعدادات التأخر والتحضير والأسباب والأدوار", "admin"],
+  ["notifications.html", "الإشعارات", "bell", "سجل رسائل أولياء الأمور وقوالبها وإعدادات الربط", "oversee"],
 ];
+// شارات القائمة: عدد ما ينتظر العمل بجوار الصفحة
+const NAV_BADGE = { "attendance.html": ["unsaved", "فصول لم يُحضَّر لها اليوم"], "locks.html": ["unlocked", "فصول حُضّرت ولم تُثبَّت"], "excuses.html": ["excuses", "أعذار لم يُبت فيها"] };
+async function navBadges() {
+  let n; try { n = await rpc("ind_nav_counts"); } catch (_) { return; }
+  if (!n || n.error) return;
+  for (const [h, [k, t]] of Object.entries(NAV_BADGE)) {
+    const a = document.querySelector(`.dnav-in a[href="${h}"]`), v = +n[k] || 0;
+    if (a && v > 0) a.insertAdjacentHTML("beforeend", `<span class="bdg" title="${esc(t)}" aria-label="${esc(t)}: ${v}">${v}</span>`);
+  }
+}
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html?next=" + encodeURIComponent(location.pathname.split("/").pop() + location.search)); return; }
@@ -186,7 +197,7 @@ async function boot(page, render, o = {}) {
   window.__ind = ctx;
   const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
-  const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات" };
+  const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "messages.html": "رسائل الغياب لأولياء الأمور", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات" };
   const cur0 = NAV.find((n) => n[0] === page), cur = cur0 ? [cur0[0], FULL[page] || cur0[1], cur0[2], cur0[3]] : [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
@@ -197,6 +208,7 @@ async function boot(page, render, o = {}) {
      <div class="pb-u"><span id="pbTime">${esc(fmtHijri(todayISO()))}</span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <main class="wrap" id="main"></main>${footerHTML}`;
   bindNav();
+  navBadges();
   document.title = cur[1] + " – انضباطي";
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };

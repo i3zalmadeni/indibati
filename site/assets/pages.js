@@ -15,31 +15,43 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
       ${(t.sections || []).map((s) => `<tr><td>${t.task === "absence" ? `<a href="attendance.html?s=${s.id}&d=${day}">${esc(s.label)}</a>` : esc(s.label)}</td><td>${t.task === "absence" ? (s.saved ? '<span class="badge ok">محفوظ</span>' : '<span class="badge warn">لم يُحفظ</span>') : `<b class="mono">${s.late_today}</b>`}</td>${t.task === "absence" ? `<td>${lockBadge(s.locked)}</td>` : ""}</tr>`).join("")}</tbody></table></div></div>`).join("")}</div>`;
   }
   if (c.oversee) {
-    const d = await rpc("ind_dashboard", { p_day: day });
+    const [d, ab] = await Promise.all([rpc("ind_dashboard", { p_day: day }), rpc("ind_day_absentees", { p_day: day })]);
     const maxW = Math.max(1, ...d.week.map((x) => Math.max(x.absent, x.late)));
-    html += `<h2 class="sec">${notToday ? "ملخص آخر يوم دراسي" : "ملخص اليوم"} <small class="sub">${esc(fmtBoth(day))}</small></h2>
+    const pend = d.sections.filter((s) => !s.saved), unl = d.sections.filter((s) => s.saved && !s.locked);
+    const XS = { submitted: ["عذر جديد", "warn"], under_review: ["قيد المراجعة", "warn"], approved: ["عذر معتمد", "ok"], rejected: ["عذر مرفوض", "bad"] };
+    html += `<h2 class="sec">${notToday ? "آخر يوم دراسي" : "اليوم"} <small class="sub">${esc(fmtBoth(day))}</small></h2>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      <div class="card"><div class="row2"><h3 class="sec" style="margin:0">${ico("check")} لم يكتمل تحضيرها (${pend.length})</h3><a class="btn sm sec" href="attendance.html">التحضير</a></div>
+        ${pend.length ? `<div class="pill-l mt">${pend.map((s) => `<a href="attendance.html?s=${s.id}&d=${day}"><span>${esc(s.label)}</span></a>`).join("")}</div>` : '<p class="sub">اكتمل تحضير جميع الفصول.</p>'}</div>
+      <div class="card"><div class="row2"><h3 class="sec" style="margin:0">${ico("lock")} حُضّرت ولم تُثبَّت (${unl.length})</h3><a class="btn sm sec" href="locks.html?d=${day}">التثبيت</a></div>
+        ${unl.length ? `<div class="pill-l mt">${unl.map((s) => `<span>${esc(s.label)}</span>`).join("")}</div>` : `<p class="sub">${pend.length ? "لا فصول محفوظة بانتظار التثبيت." : "جميع الفصول مثبتة."}</p>`}</div>
+    </div>
+    <h3 class="sec">إحصائيات الغياب</h3>
     <div class="kgrid">
       <div class="kpi k0"><div class="ic">${ico("users")}</div><div><b class="mono">${d.total}</b><span>إجمالي الطلاب</span></div></div>
       <div class="kpi k4"><div class="ic">${ico("check")}</div><div><b class="mono">${d.present}</b><span>${d.sections.some((x) => x.saved) ? `حاضر${d.rate != null ? ` · ${d.rate}%` : ""}` : "لم يبدأ التحضير"}</span></div></div>
+      <div class="kpi k5"><div class="ic">${ico("x")}</div><div><b class="mono">${d.excused + d.unexcused}</b><span>إجمالي الغائبين</span></div></div>
       <div class="kpi k3"><div class="ic">${ico("file")}</div><div><b class="mono">${d.excused}</b><span>غائب بعذر</span></div></div>
       <div class="kpi k5"><div class="ic">${ico("x")}</div><div><b class="mono">${d.unexcused}</b><span>غائب بدون عذر</span></div></div>
       <div class="kpi k1"><div class="ic">${ico("clock")}</div><div><b class="mono">${d.late}</b><span>حالة تأخر</span></div></div>
-      <div class="kpi k2"><div class="ic">${ico("lock")}</div><div><b class="mono">${d.locked}/${d.sections.length}</b><span>فصل مثبت</span></div></div>
     </div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
-      <div class="card"><div class="row2"><h3 class="sec" style="margin:0">الفصول التي لم يكتمل تحضيرها (${d.not_saved})</h3><a class="btn sm sec" href="locks.html">شاشة التثبيت</a></div>
-        ${d.not_saved ? `<div class="pill-l mt">${d.sections.filter((s) => !s.saved).map((s) => `<span>${esc(s.label)}</span>`).join("")}</div>` : '<p class="sub">اكتمل تحضير جميع الفصول.</p>'}
-        <h3 class="sec">غير مثبت (${d.unlocked})</h3>${d.unlocked ? `<div class="pill-l">${d.sections.filter((s) => !s.locked).map((s) => `<span>${esc(s.label)}</span>`).join("")}</div>` : '<p class="sub">جميع الفصول مثبتة.</p>'}</div>
-      <div class="card"><h3 class="sec" style="margin-top:0">آخر سبعة أيام</h3><div class="bars">${d.week.map((x) => `<div class="br"><span>${esc(fmtShortDay(x.day))}</span><span><i style="width:${(100 * x.absent) / maxW}%" title="غياب ${x.absent}"></i><i class="l" style="width:${(100 * x.late) / maxW}%;margin-top:3px" title="تأخر ${x.late}"></i></span><small class="mono">${x.absent}/${x.late}</small></div>`).join("")}</div>
-        <p class="sub"><span class="badge">الأزرق: غياب</span> <span class="badge warn">الذهبي: تأخر</span></p>
-        <h3 class="sec">أكثر أسباب التأخر (أسبوع)</h3>${d.top_reasons.length ? d.top_reasons.map((r) => `<div class="row2"><span>${esc(r.name)}</span><b class="mono">${r.count}</b></div>`).join("") : '<p class="sub">لا حالات تأخر.</p>'}</div>
-    </div>
+    <div class="card mt"><div class="row2"><h3 class="sec" style="margin:0">${ico("users")} الغائبون (${ab.length})</h3>
+      <div class="acts">${ab.length && c.isCoord ? `<a class="btn sm" href="messages.html?d=${day}">${ico("send")}رسائل الغياب</a>` : ""}${ab.length ? `<button class="btn sm sec" id="abx">${ico("file")}تصدير</button>` : ""}</div></div>
+      ${ab.length ? `<div class="tw mt"><table class="tbl"><thead><tr><th>#</th><th>الطالب</th><th>الفصل</th><th>الحالة</th><th>العذر</th></tr></thead><tbody>${ab.map((r, i) => `<tr><td class="mono">${i + 1}</td>
+        <td><a href="student.html?id=${r.student_id}">${esc(r.name)}</a></td><td>${esc(r.label)}${r.locked ? "" : ' <span class="badge warn">غير مثبت</span>'}</td>
+        <td><span class="badge ${r.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[r.status]}</span></td><td>${r.excuse ? `<span class="badge ${XS[r.excuse][1]}">${XS[r.excuse][0]}</span>` : "—"}</td></tr>`).join("")}</tbody></table></div>`
+        : `<p class="sub">${d.sections.some((x) => x.saved) ? "لا غائبين مسجلين." : "لم يبدأ التحضير بعد."}</p>`}</div>
     <div id="dx"></div>
-    <h3 class="sec">الغياب حسب الفصل</h3><div class="tw"><table class="tbl"><thead><tr><th>الفصل</th><th>الطلاب</th><th>بعذر</th><th>بدون عذر</th><th>التحضير</th><th>التثبيت</th></tr></thead><tbody>
-    ${d.sections.map((s) => `<tr><td><a href="attendance.html?s=${s.id}&d=${day}">${esc(s.label)}</a></td><td class="mono">${s.students}</td><td class="mono">${s.excused}</td><td class="mono">${s.unexcused}</td><td>${s.saved ? '<span class="badge ok">محفوظ</span>' : '<span class="badge warn">لم يُحفظ</span>'}</td><td>${lockBadge(s.locked)}</td></tr>`).join("")}</tbody></table></div>`;
+    <div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+      <div class="card"><h3 class="sec" style="margin-top:0">آخر سبعة أيام</h3><div class="bars">${d.week.map((x) => `<div class="br"><span>${esc(fmtShortDay(x.day))}</span><span><i style="width:${(100 * x.absent) / maxW}%" title="غياب ${x.absent}"></i><i class="l" style="width:${(100 * x.late) / maxW}%;margin-top:3px" title="تأخر ${x.late}"></i></span><small class="mono">${x.absent}/${x.late}</small></div>`).join("")}</div>
+        <p class="sub"><span class="badge">الأزرق: غياب</span> <span class="badge warn">الذهبي: تأخر</span></p></div>
+      <div class="card"><h3 class="sec" style="margin-top:0">أكثر أسباب التأخر (أسبوع)</h3>${d.top_reasons.length ? d.top_reasons.map((r) => `<div class="row2"><span>${esc(r.name)}</span><b class="mono">${r.count}</b></div>`).join("") : '<p class="sub">لا حالات تأخر.</p>'}</div>
+    </div>`;
+    var ABX = ab;
   }
   if (!html) html = empty("inbox", "لا مهام مسندة إليك في انضباطي", "يُسند منسق الغياب فصول تسجيل الغياب أو التأخر من «إدارة التكليفات». راجعه إن كنت مكلفاً.");
   main.innerHTML = html;
+  if ($("#abx")) $("#abx").onclick = () => exportCSV("الغائبون", ["الطالب", "رقم الطالب", "الفصل", "الحالة", "العذر"], ABX.map((r) => [r.name, r.no, r.label, STATUS[r.status], r.excuse || ""]));
   if (c.oversee) { try { const x = await rpc("ind_dashboard_extra");
     $("#dx").innerHTML = `<div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
       <a class="card" href="excuses.html" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.excuses_new}</b><br><span class="sub">عذر جديد بانتظار المراجعة</span></a>
@@ -130,7 +142,7 @@ PAGES.locks = () => boot("locks.html", async (main, c) => {
     $("#lb").innerHTML = loading();
     let rows; try { rows = await rpc("ind_day_status", { p_day: D.value, p_grade: G.value || null }); } catch (e) { $("#lb").innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
     const pickable = (s) => (c.isCoord || s.mine);
-    $("#la").innerHTML = canLock ? `<button class="btn sm" id="lSel" disabled>${ico("lock")}تثبيت المحدد</button>${c.isCoord ? `<button class="btn sm sec" id="lAll">${ico("lock")}تثبيت جميع الفصول${G.value ? " (الصف)" : ""}</button><button class="btn sm sec" id="uSel" disabled>${ico("unlock")}إلغاء تثبيت المحدد</button><button class="btn sm sec" id="uAll">${ico("unlock")}إلغاء تثبيت الجميع${G.value ? " (الصف)" : ""}</button>` : ""}<span class="sub" id="nsel"></span>` : "";
+    $("#la").innerHTML = canLock ? `<button class="btn sm" id="lSel" disabled>${ico("lock")}تثبيت المحدد</button>${c.isCoord ? `<button class="btn sm sec" id="lAll">${ico("lock")}تثبيت جميع الفصول${G.value ? " (الصف)" : ""}</button><button class="btn sm sec" id="uSel" disabled>${ico("unlock")}إلغاء تثبيت المحدد</button><button class="btn sm sec" id="uAll">${ico("unlock")}إلغاء تثبيت الجميع${G.value ? " (الصف)" : ""}</button><a class="btn sm" href="messages.html?d=${D.value}">${ico("send")}رسائل الغياب لهذا اليوم</a>` : ""}<span class="sub" id="nsel"></span>` : "";
     const stt = (r) => (r.locked ? "locked" : r.saved ? "saved" : "none");
     const cnt = (k) => rows.filter((r) => stt(r) === k).length;
     const STB = { locked: ["lock", "مثبت"], none: ["x", "لم يتم التحضير"], saved: ["check", "تم التحضير ولم يُثبَّت"] };
