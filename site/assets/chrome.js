@@ -11,7 +11,7 @@ const UF_PROJECT = "انضباطي";
 const UF_HOW_URL = "https://i3zalmadeni.netlify.app/projects";
 const UF_ME_URL = "https://i3zalmadeni.netlify.app/me";
 const UF_CSS = `footer.uf{--uf-navy:#102c3b;--uf-blue:#3f7592;--uf-teal:#39a6a3;--uf-orange:#f0a35e;border-top:1px solid var(--line,#e2edf1);background:var(--surface,#fff);color:var(--ink,#0d2b45);font-family:inherit;margin-top:0}
-footer.uf .uf-in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:16px}
+footer.uf .uf-in{display:flex;align-items:center;justify-content:flex-start;gap:16px;flex-wrap:wrap;padding-block:16px}
 footer.uf .uf-moe{display:flex;flex-direction:column;align-items:center;line-height:1.2;padding-inline-start:10px;border-inline-start:2px solid var(--uf-orange)}
 footer.uf .uf-moe b{font-size:.9rem;font-weight:800}footer.uf .uf-moe small{font-size:.62rem;color:var(--muted,#71859a)}
 footer.uf .uf-mid{flex:1;min-width:200px;display:flex;flex-direction:column;font-size:.84rem;color:var(--muted,#71859a);line-height:1.7}footer.uf .uf-mid b{color:var(--ink,#0d2b45);font-weight:800}
@@ -41,6 +41,7 @@ const footerHTML = `<footer class="uf credit"><div class="wrap uf-in"><span clas
 // زر الخروج يحمل المعرّف out، فيعمل معه معالج الخروج الموجود في كل نظام دون تغيير.
 const UB_SVG = {
   bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   logout: '<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9"/>',
   check: '<path d="M4 12l5 5L20 6"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', alert: '<path d="M12 3l10 18H2zM12 10v5M12 18h.01"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', inbox: '<path d="M3 13l3-8h12l3 8M3 13v6h18v-6M3 13h5l1 3h6l1-3h5"/>',
@@ -74,7 +75,7 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 .ub a.ub-it::after{display:none}.ub a.ub-it:hover{background:var(--soft,#eef8fa);color:var(--ink,#0d2b45)}.ub a.ub-it.new{background:var(--brandsoft,#e3f6f7)}
 .ub-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;background:#e7f0fb;color:#2f6fc4}
 .ub-ic .ub-i{width:17px;height:17px}.ub-it.ok .ub-ic{background:#e2f5ea;color:#1f9d63}.ub-it.warn .ub-ic{background:#fdf1dc;color:#b06d0c}.ub-it.bad .ub-ic{background:#fbe5e8;color:#c23646}
-.ub-it .ub-tx{min-width:0;flex:1}.ub-it b{display:block;font-size:.9rem;line-height:1.5;color:var(--ink,#0d2b45)}.ub-it small{display:block;color:var(--ink2,#3d566b);font-size:.8rem;line-height:1.6}
+.ub-it .ub-tx{min-width:0;flex:1}.ub .ub-it small,.ub .ub-it time,.ub .ub-it b{max-width:none;overflow:visible;white-space:normal;text-overflow:clip;display:block}.ub .ub-it b{color:var(--ink,#0d2b45);font-size:.9rem}.ub .ub-it small{color:var(--ink2,#3d566b);font-size:.8rem}.ub .ub-it time{color:var(--muted,#71859a);font-size:.72rem}.ub .ub-ph b{color:var(--ink,#0d2b45)}.ub-it b{display:block;font-size:.9rem;line-height:1.5;color:var(--ink,#0d2b45)}.ub-it small{display:block;color:var(--ink2,#3d566b);font-size:.8rem;line-height:1.6}
 .ub-it time{display:block;color:var(--muted,#71859a);font-size:.72rem;margin-top:2px}.ub-it .ub-dot{width:8px;height:8px;border-radius:50%;background:#f0b34a;flex:none;margin-top:8px}
 .ub-empty{margin:18px 14px;text-align:center;color:var(--muted,#71859a);font-size:.9rem}
 .ub a.ub-all{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-top:1px solid var(--line,#e2edf1);font-weight:800;font-size:.88rem;color:var(--brand2,#0c6f82);text-decoration:none;background:var(--surface,#fff);border-radius:0;white-space:nowrap}
@@ -89,8 +90,28 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 .ub #out.ub-out:hover,header .ub #out.ub-out:hover{background:#c23646;border-color:#c23646;color:#fff}
 @media (max-width:700px){.ub-nm{display:none}.ub a.ub-u{padding-inline-start:6px}}
 @media (max-width:520px){.ub{gap:6px}.ub-out span{display:none}.ub-out{padding:0 10px}}
-@media (max-width:640px){.ub-p{position:fixed;inset-inline:12px;inset-block-start:auto;margin-top:10px;width:auto;max-height:70vh}}
-@media print{.ub{display:none}}`;
+@media (max-width:900px){.ub-p{position:fixed;inset-inline:12px;inset-block-start:auto;margin-top:10px;width:auto;max-width:520px;margin-inline:auto;max-height:70vh}}
+.ubg{background:var(--surface,#fff);border:1px solid var(--line,#e2edf1);border-radius:22px;padding:22px;margin:16px 0;color:var(--ink,#0d2b45);box-shadow:0 6px 20px rgba(13,43,69,.06)}
+.ubg-h{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}.ubg-t{flex:1;min-width:220px}.ubg-t h2{margin:0;font-size:1.3rem;font-weight:800}.ubg-t p{margin:4px 0 0;color:var(--ink2,#3d566b);font-size:.9rem;line-height:1.8}
+.ubg-i{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#18a4ab,#0c6f82);color:#fff;flex:none}.ubg-i .ub-i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ubg .ub-i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ubg-mark{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border-radius:13px;border:1px solid var(--line,#e2edf1);background:var(--soft,#eef8fa);color:var(--brand2,#0c6f82);font:inherit;font-weight:700;cursor:pointer}.ubg-mark:hover{background:var(--brandsoft,#e3f6f7)}
+.ubg-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 14px}.ubg-kp{border:1px solid var(--line,#e2edf1);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column}.ubg-kp b{font-size:1.6rem;line-height:1.1;font-variant-numeric:tabular-nums}.ubg-kp span{color:var(--ink2,#3d566b);font-size:.84rem}
+.ubg-kp.a{background:linear-gradient(135deg,#18a4ab,#0c6f82);border:0;color:#fff}.ubg-kp.a span{color:rgba(255,255,255,.9)}.ubg-kp.n b{color:#b06d0c}.ubg-kp.bad b{color:#c23646}.ubg-kp.warn b{color:#b06d0c}
+.ubg-f{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.ubg-seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--line,#e2edf1);border-radius:12px;background:var(--surface,#fff);flex-wrap:wrap}
+.ubg-seg button{border:0;background:none;font:inherit;font-size:.85rem;font-weight:700;color:var(--ink2,#3d566b);padding:7px 12px;border-radius:9px;cursor:pointer;min-height:38px}.ubg-seg button[aria-checked=true]{background:linear-gradient(135deg,#18a4ab,#0c6f82);color:#fff}
+.ubg-q{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;border:1px solid var(--line,#e2edf1);border-radius:12px;padding:0 12px;min-height:44px;color:var(--muted,#71859a)}.ubg-q input{flex:1;border:0;outline:0;background:none;font:inherit;color:var(--ink,#0d2b45);min-width:0;box-shadow:none;padding:0}
+.ubg-d{margin:18px 0 8px;font-size:.88rem;font-weight:800;color:var(--muted,#71859a)}
+.ubg-c{border:1px solid var(--line,#e2edf1);border-radius:16px;overflow:hidden}
+.ubg a.ubg-it{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;text-decoration:none;color:var(--ink,#0d2b45);border-bottom:1px solid var(--line,#e2edf1);background:var(--surface,#fff)}.ubg a.ubg-it:last-child{border-bottom:0}
+.ubg a.ubg-it:hover{background:var(--soft,#eef8fa)}.ubg a.ubg-it.new{background:var(--brandsoft,#e3f6f7)}
+.ubg-it .ub-ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex:none;background:#e7f0fb;color:#2f6fc4}.ubg-it.ok .ub-ic{background:#e2f5ea;color:#1f9d63}.ubg-it.warn .ub-ic{background:#fdf1dc;color:#b06d0c}.ubg-it.bad .ub-ic{background:#fbe5e8;color:#c23646}
+.ubg-it .ub-tx{flex:1;min-width:0}.ubg-it b{display:block;font-size:.98rem;line-height:1.6}.ubg-it small{display:block;color:var(--ink2,#3d566b);font-size:.86rem;line-height:1.7}.ubg-it time{display:block;color:var(--muted,#71859a);font-size:.76rem;margin-top:2px}
+.ubg-it .ub-dot{width:9px;height:9px;border-radius:50%;background:#f0b34a;flex:none;margin-top:8px}
+.ubg-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:40px 16px;text-align:center;color:var(--muted,#71859a)}.ubg-empty .ub-i{width:40px;height:40px;opacity:.5}.ubg-empty b{color:var(--ink,#0d2b45);font-size:1.05rem}
+@media (max-width:640px){.ubg{padding:16px;border-radius:18px}.ubg-k{grid-template-columns:repeat(2,minmax(0,1fr))}.ubg-mark{width:100%;justify-content:center}.ubg-seg{width:100%}.ubg-seg button{flex:1}}
+@media print{.ub,.ubg-f,.ubg-mark{display:none}}`;
 (function () { if (document.getElementById("ub-css")) return; const s = document.createElement("style"); s.id = "ub-css"; s.textContent = UB_CSS; (document.head || document.documentElement).appendChild(s); })();
 // HTML الشريط. home: رابط صفحة المستخدم (ملفه أو حسابه) عند النقر على صورته واسمه
 function ubBarHTML(name, home) {
@@ -99,41 +120,88 @@ function ubBarHTML(name, home) {
     <a class="ub-u" href="${ubEsc(home || "#")}" title="${ubEsc(name)}"><span class="ub-av" id="ubAv" aria-hidden="true">${ubEsc(String(name || "").trim().charAt(0))}</span><span class="ub-nm">${ubEsc(ubShortName(name))}</span></a>
     <button type="button" class="ub-out" id="out">${ubIco("logout")}<span>خروج</span></button></div>`;
 }
-// تشغيل الشريط بعد إدراجه. o: { client, key, uid, load: async () => [عناصر], allUrl, markAll: async () => {} }
+// تشغيل الشريط بعد إدراجه (يجوز استدعاؤه بعد كل إعادة رسم للشريط). o: { key, uid, load: async () => [عناصر], allUrl, markAll: async () => {} }
 // العنصر: { id, title, body, href, icon, tone: ok|warn|bad|info, t: وقت (اختياري), read: (اختياري؛ وإلا يُحفظ المقروء في هذا المتصفح) }
+const UB = { o: null, N: [], at: 0, seen: new Set(), photo: undefined, pages: [] };
+const ubKey = () => "ub-seen-" + ((UB.o && UB.o.key) || "x") + "-" + ((UB.o && UB.o.uid) || "");
+const ubSave = () => { try { localStorage.setItem(ubKey(), JSON.stringify([...UB.seen].slice(-400))); } catch (_) {} };
+const ubUnread = (x) => (x.read != null ? !x.read : !UB.seen.has(String(x.id)));
+const ubFmt = (t) => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleString("ar-SA-u-ca-gregory-nu-latn", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Riyadh" }); };
+const ubItem = (x, i, cls) => `<a class="${cls} ${ubEsc(x.tone || "info")}${ubUnread(x) ? " new" : ""}" href="${ubEsc(x.href || "#")}" data-ubi="${i}"><span class="ub-ic">${ubIco(x.icon || "bell")}</span><span class="ub-tx"><b>${ubEsc(x.title)}</b>${x.body ? `<small>${ubEsc(x.body)}</small>` : ""}${x.t ? `<time>${ubEsc(ubFmt(x.t))}</time>` : ""}</span>${ubUnread(x) ? '<span class="ub-dot" aria-label="غير مقروء"></span>' : ""}</a>`;
+function ubPaint() {
+  const $u = (s) => document.getElementById(s), C = $u("ubC"), B = $u("ubB"), L = $u("ubL");
+  const n = UB.N.filter(ubUnread).length;
+  if (C) { C.hidden = !n; C.textContent = n > 9 ? "9+" : String(n); }
+  if (B) B.setAttribute("aria-label", n ? `الإشعارات، ${n} غير مقروء` : "الإشعارات");
+  if (L) L.innerHTML = UB.N.length ? UB.N.slice(0, 12).map((x, i) => ubItem(x, i, "ub-it")).join("") : '<p class="ub-empty">لا إشعارات حالياً.</p>';
+  UB.pages.forEach((f) => f());
+}
+async function ubLoad() {
+  if (!UB.o) return; try { UB.N = (await UB.o.load()) || []; } catch (e) { console.error(e); UB.N = []; }
+  const tv = (x) => +new Date(x.t || 0) || 0;
+  UB.N.sort((a, b) => (ubUnread(b) - ubUnread(a)) || (tv(b) - tv(a))); UB.at = Date.now(); UB.loaded = true; ubPaint();
+}
+async function ubMarkAll() { UB.N.forEach((x) => UB.seen.add(String(x.id))); ubSave(); if (UB.o && UB.o.markAll) { try { await UB.o.markAll(); } catch (_) {} } UB.N = UB.N.map((x) => (x.read != null ? { ...x, read: true } : x)); ubPaint(); }
+const ubClose = () => { const P = document.getElementById("ubP"), B = document.getElementById("ubB"); if (P) P.hidden = true; if (B) B.setAttribute("aria-expanded", "false"); };
 function ubMount(o) {
-  const $u = (s) => document.getElementById(s), B = $u("ubB"), P = $u("ubP"), L = $u("ubL"), C = $u("ubC"), A = $u("ubA");
+  const $u = (s) => document.getElementById(s), B = $u("ubB"), P = $u("ubP"), A = $u("ubA");
+  const first = !UB.o || UB.o.key !== o.key || UB.o.uid !== o.uid;
+  UB.o = o; if (first) { try { UB.seen = new Set(JSON.parse(localStorage.getItem(ubKey()) || "[]")); } catch (_) { UB.seen = new Set(); } }
   if (!B) return;
+  // الصورة: من سجل النواة (دالة core_my_photo)، وإلا يبقى أول حرف من الاسم. تُجلب مرة واحدة
   const cli = o.client || (typeof sb !== "undefined" ? sb : null);
-  // الصورة: من سجل النواة (دالة core_my_photo)، وإلا يبقى أول حرف من الاسم
-  if (cli) Promise.resolve(cli.rpc("core_my_photo")).then(async (r) => {
-    const ph = r && r.data; if (!ph || !ph.path) return;
-    let url = null;
+  const put = (url) => { if (!url) return; const im = new Image(); im.alt = ""; im.onload = () => { const d = $u("ubAv"); if (d && !d.querySelector("img")) { d.textContent = ""; d.appendChild(im); } }; im.src = url; };
+  if (UB.photo !== undefined) put(UB.photo);
+  else if (cli) { UB.photo = null; Promise.resolve(cli.rpc("core_my_photo")).then(async (r) => {
+    const ph = r && r.data; if (!ph || !ph.path) return; let url = null;
     if (ph.public) url = `${APP_CONFIG.supabaseUrl}/storage/v1/object/public/${ph.bucket}/${ph.path.split("/").map(encodeURIComponent).join("/")}`;
     else { try { const s = await cli.storage.from(ph.bucket).createSignedUrl(ph.path, 3600); url = s && s.data && s.data.signedUrl; } catch (_) {} }
-    if (!url) return; const im = new Image(); im.alt = ""; im.onload = () => { const d = $u("ubAv"); if (d) { d.textContent = ""; d.appendChild(im); } }; im.src = url;
-  }).catch(() => {});
-  if (o.allUrl) { A.href = o.allUrl; A.hidden = false; }
-  const KEY = "ub-seen-" + (o.key || "x") + "-" + (o.uid || ""); let seen;
-  try { seen = new Set(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch (_) { seen = new Set(); }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify([...seen].slice(-300))); } catch (_) {} };
-  let N = [], at = 0;
-  const unread = (x) => (x.read != null ? !x.read : !seen.has(String(x.id)));
-  const fmt = (t) => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Riyadh" }); };
-  const paint = () => {
-    const n = N.filter(unread).length; C.hidden = !n; C.textContent = n > 9 ? "9+" : String(n);
-    B.setAttribute("aria-label", n ? `الإشعارات، ${n} غير مقروء` : "الإشعارات");
-    L.innerHTML = N.length ? N.slice(0, 15).map((x, i) => `<a class="ub-it ${ubEsc(x.tone || "info")}${unread(x) ? " new" : ""}" href="${ubEsc(x.href || "#")}" data-i="${i}"><span class="ub-ic">${ubIco(x.icon || "bell")}</span><span class="ub-tx"><b>${ubEsc(x.title)}</b>${x.body ? `<small>${ubEsc(x.body)}</small>` : ""}${x.t ? `<time>${ubEsc(fmt(x.t))}</time>` : ""}</span>${unread(x) ? '<span class="ub-dot" aria-label="غير مقروء"></span>' : ""}</a>`).join("")
-      : '<p class="ub-empty">لا إشعارات حالياً.</p>';
+    UB.photo = url; put(url);
+  }).catch(() => {}); }
+  if (A && o.allUrl) { A.href = o.allUrl; A.hidden = false; }
+  B.onclick = (e) => { e.stopPropagation(); const open = P.hidden; P.hidden = !open; B.setAttribute("aria-expanded", String(open)); if (open && Date.now() - UB.at > 60000) ubLoad(); };
+  $u("ubR").onclick = (e) => { e.stopPropagation(); ubMarkAll(); };
+  P.onclick = (e) => { e.stopPropagation(); const a = e.target.closest("[data-ubi]"); if (a) { const x = UB.N[+a.dataset.ubi]; if (x) { UB.seen.add(String(x.id)); ubSave(); } ubClose(); } else if (e.target.closest("#ubA")) ubClose(); };
+  if (!window.__ubDoc) { window.__ubDoc = true;
+    document.addEventListener("click", ubClose);
+    document.addEventListener("keydown", (e) => { const P2 = document.getElementById("ubP"); if (e.key === "Escape" && P2 && !P2.hidden) { ubClose(); const b = document.getElementById("ubB"); if (b) b.focus(); } }); }
+  if (first || !UB.loaded) ubLoad(); else ubPaint();
+}
+// ===== صفحة الإشعارات الموحّدة التصميم (المصدر نفسه والمقروء نفسه في الجرس) =====
+const UB_TONE = { all: "الكل", bad: "عاجل", warn: "يحتاج متابعة", info: "للعلم", ok: "منجز" };
+function ubPage(host, sys) {
+  if (!host) return; let F = "all", T = "all", Q = "";
+  host.innerHTML = `<section class="ubg"><div class="ubg-h"><span class="ubg-i" aria-hidden="true">${ubIco("bell")}</span><div class="ubg-t"><h2>الإشعارات</h2><p>كل ما يخصك في ${ubEsc(sys || "هذا النظام")}: ما ينتظر إجراءك، ونتائج طلباتك، والمستجدات. المقروء هنا مقروء في الجرس أيضاً.</p></div>
+    <button type="button" class="ubg-mark" id="ubgR">${ubIco("check")}<span>تحديد الكل كمقروء</span></button></div>
+    <div class="ubg-k" id="ubgK"></div>
+    <div class="ubg-f"><div class="ubg-seg" role="radiogroup" aria-label="عرض">${[["all", "الكل"], ["new", "غير المقروء"]].map(([k, n]) => `<button type="button" role="radio" data-ubf="${k}">${n}</button>`).join("")}</div>
+      <div class="ubg-seg" role="radiogroup" aria-label="النوع">${Object.entries(UB_TONE).map(([k, n]) => `<button type="button" role="radio" data-ubt="${k}">${n}</button>`).join("")}</div>
+      <label class="ubg-q">${ubIco("search")}<input type="search" id="ubgQ" placeholder="بحث في الإشعارات" aria-label="بحث في الإشعارات"></label></div>
+    <div class="ubg-l" id="ubgL" aria-live="polite"><p class="ub-empty">جارٍ التحميل…</p></div></section>`;
+  const day = (t) => { if (!t) return "يحتاج إجراءً الآن"; const d = new Date(t), k = (x) => x.toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }), now = new Date();
+    if (isNaN(d)) return "أخرى"; const dd = k(d), td = k(now), yd = k(new Date(now - 864e5)); if (dd > td) return "قادم"; if (dd === td) return "اليوم"; if (dd === yd) return "أمس";
+    return now - d < 7 * 864e5 ? "هذا الأسبوع" : "أقدم"; };
+  const draw = () => {
+    const L = document.getElementById("ubgL"); if (!L) { UB.pages = UB.pages.filter((f) => f !== draw); return; }
+    const all = UB.N, un = all.filter(ubUnread).length, cnt = (t) => all.filter((x) => (x.tone || "info") === t).length;
+    document.getElementById("ubgK").innerHTML = [["الكل", all.length, "a"], ["غير مقروء", un, "n"], ["عاجل", cnt("bad"), "bad"], ["يحتاج متابعة", cnt("warn"), "warn"]].map(([n, v, c]) => `<div class="ubg-kp ${c}"><b>${v}</b><span>${n}</span></div>`).join("");
+    host.querySelectorAll("[data-ubf]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.ubf === F)));
+    host.querySelectorAll("[data-ubt]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.ubt === T)));
+    if (!UB.loaded) return;
+    const q = Q.trim(), list = all.map((x, i) => [x, i]).filter(([x]) => (F === "all" || ubUnread(x)) && (T === "all" || (x.tone || "info") === T) && (!q || (x.title + " " + (x.body || "")).includes(q)));
+    if (!list.length) { L.innerHTML = `<div class="ubg-empty">${ubIco("bell")}<b>${all.length ? "لا إشعارات مطابقة" : "لا إشعارات حالياً"}</b><span>${all.length ? "غيّر التصفية لعرض غيرها." : "ستظهر هنا مستجدات النظام وما ينتظر إجراءك."}</span></div>`; return; }
+    const G = []; list.forEach((p) => { const g = day(p[0].t), last = G[G.length - 1]; if (last && last[0] === g) last[1].push(p); else G.push([g, [p]]); });
+    L.innerHTML = G.map(([g, ps]) => `<h3 class="ubg-d">${ubEsc(g)}</h3><div class="ubg-c">${ps.map(([x, i]) => ubItem(x, i, "ubg-it")).join("")}</div>`).join("");
   };
-  const load = async () => { try { N = (await o.load()) || []; } catch (e) { console.error(e); N = []; } N.sort((a, b) => (+new Date(b.t || 0) || 0) - (+new Date(a.t || 0) || 0)); at = Date.now(); paint(); };
-  const close = () => { P.hidden = true; B.setAttribute("aria-expanded", "false"); };
-  B.onclick = (e) => { e.stopPropagation(); const open = P.hidden; P.hidden = !open; B.setAttribute("aria-expanded", String(open)); if (open && Date.now() - at > 60000) load(); };
-  $u("ubR").onclick = async () => { N.forEach((x) => seen.add(String(x.id))); save(); if (o.markAll) { try { await o.markAll(); } catch (_) {} } N = N.map((x) => (x.read != null ? { ...x, read: true } : x)); paint(); };
-  L.addEventListener("click", (e) => { const a = e.target.closest("[data-i]"); if (!a) return; const x = N[+a.dataset.i]; if (x) { seen.add(String(x.id)); save(); } });
-  P.addEventListener("click", (e) => e.stopPropagation());
-  document.addEventListener("click", close); document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !P.hidden) { close(); B.focus(); } });
-  load();
+  UB.pages = UB.pages.filter((f) => document.body.contains(host) && f !== draw); UB.pages.push(draw);
+  host.addEventListener("click", (e) => {
+    const f = e.target.closest("[data-ubf]"), t = e.target.closest("[data-ubt]"), a = e.target.closest("[data-ubi]");
+    if (f) { F = f.dataset.ubf; draw(); } else if (t) { T = t.dataset.ubt; draw(); }
+    else if (a) { const x = UB.N[+a.dataset.ubi]; if (x) { UB.seen.add(String(x.id)); ubSave(); ubPaint(); } }
+    else if (e.target.closest("#ubgR")) ubMarkAll();
+  });
+  host.querySelector("#ubgQ").addEventListener("input", (e) => { Q = e.target.value; draw(); });
+  draw(); if (!UB.loaded || Date.now() - UB.at > 30000) ubLoad();
 }
 // تحديث الاسم بعد الدخول (للأنظمة التي تبني الشريط قبل معرفة المستخدم)
 function ubSetName(name, home) {

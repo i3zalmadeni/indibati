@@ -213,7 +213,7 @@ async function boot(page, render, o = {}) {
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: ما ينتظر العمل اليوم (التحضير، التثبيت، الأعذار) بحسب صلاحية المستخدم، و«مشاهدة الكل» مركز الإشعارات لمن يصل إليه
-  ubMount({ key: "ind", uid: ctx.uid, allUrl: ctx.oversee ? "notifications.html" : null, load: async () => {
+  ubMount({ key: "ind", uid: ctx.uid, allUrl: "inbox.html", load: async () => {
     const n = await rpc("ind_nav_counts"); if (!n || n.error || n.weekend) return [];
     const N = [], day = n.day, cnt = (v, one, two, few, many) => (v === 1 ? one : v === 2 ? two : v <= 10 ? v + " " + few : v + " " + many);
     if (+n.unsaved && (ctx.absence || ctx.oversee)) N.push({ id: `unsaved:${day}:${n.unsaved}`, tone: "warn", icon: "check", href: "attendance.html", title: `${cnt(+n.unsaved, "فصل واحد", "فصلان", "فصول", "فصلاً")} لم يُحضَّر لها اليوم`, body: "اختر الفصل وحدد الغائبين فقط." });
