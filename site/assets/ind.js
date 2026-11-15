@@ -203,7 +203,7 @@ async function boot(page, render, o = {}) {
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><div class="dnav-in">${NAV.filter((n) => ok(n[4])).map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
-     <div class="dwho"><span class="dname">${esc(who.name)}</span><a class="loginbtn" href="#" id="out">خروج</a></div></div></div></header>
+     <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime">${esc(fmtHijri(todayISO()))}</span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <main class="wrap" id="main"></main>${footerHTML}`;
@@ -212,6 +212,15 @@ async function boot(page, render, o = {}) {
   document.title = cur[1] + " – انضباطي";
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
+  // الإشعارات: ما ينتظر العمل اليوم (التحضير، التثبيت، الأعذار) بحسب صلاحية المستخدم، و«مشاهدة الكل» مركز الإشعارات لمن يصل إليه
+  ubMount({ key: "ind", uid: ctx.uid, allUrl: ctx.oversee ? "notifications.html" : null, load: async () => {
+    const n = await rpc("ind_nav_counts"); if (!n || n.error || n.weekend) return [];
+    const N = [], day = n.day, cnt = (v, one, two, few, many) => (v === 1 ? one : v === 2 ? two : v <= 10 ? v + " " + few : v + " " + many);
+    if (+n.unsaved && (ctx.absence || ctx.oversee)) N.push({ id: `unsaved:${day}:${n.unsaved}`, tone: "warn", icon: "check", href: "attendance.html", title: `${cnt(+n.unsaved, "فصل واحد", "فصلان", "فصول", "فصلاً")} لم يُحضَّر لها اليوم`, body: "اختر الفصل وحدد الغائبين فقط." });
+    if (+n.unlocked && (ctx.absence || ctx.oversee)) N.push({ id: `unlocked:${day}:${n.unlocked}`, tone: "info", icon: "lock", href: "locks.html", title: `${cnt(+n.unlocked, "فصل واحد", "فصلان", "فصول", "فصلاً")} حُضّرت ولم تُثبَّت`, body: "ثبّت التحضير ليُعتمد في التقارير ورسائل الغياب." });
+    if (+n.excuses) N.push({ id: `excuses:${n.excuses}`, tone: "bad", icon: "file", href: "excuses.html", title: `${cnt(+n.excuses, "عذر واحد", "عذران", "أعذار", "عذراً")} لم يُبت فيها`, body: "أعذار غياب قدمها أولياء الأمور وتنتظر المراجعة." });
+    return N;
+  } });
   const main = $("#main");
   try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<div class="card"><p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p><button class="btn sec" onclick="location.reload()">إعادة المحاولة</button></div>`; }
 }
