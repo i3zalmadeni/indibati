@@ -166,8 +166,9 @@ const NAV = [
   ["escalations.html", "الإجراءات", "flag", "إشعارات الغياب النظامية وحدودها وطباعتها", "oversee"],
   ["assignments.html", "التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord"],
   ["audit.html", "السجل", "list", "كل عملية مسجلة بالمستخدم والوقت والقيم السابقة والجديدة", "admin"],
-  ["settings.html", "الإعدادات", "gear", "إعدادات التأخر والتحضير والأسباب والأدوار", "admin"],
   ["notifications.html", "الإشعارات", "bell", "سجل رسائل أولياء الأمور وقوالبها وإعدادات الربط", "oversee"],
+  ["perms.html", "الصلاحيات", "key", "أدوار المنسقين ووكلاء شؤون الطلاب ومديري البوابة", "admin"],
+  ["settings.html", "إدارة البوابة", "gear", "إعدادات التأخر والتحضير والأعذار والأسباب ونقاط الانتظام", "admin"],
 ];
 // شارات القائمة: عدد ما ينتظر العمل بجوار الصفحة
 const NAV_BADGE = { "attendance.html": ["unsaved", "فصول لم يُحضَّر لها اليوم"], "locks.html": ["unlocked", "فصول حُضّرت ولم تُثبَّت"], "excuses.html": ["excuses", "أعذار لم يُبت فيها"] };
@@ -197,7 +198,7 @@ async function boot(page, render, o = {}) {
   window.__ind = ctx;
   const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
-  const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "messages.html": "رسائل الغياب لأولياء الأمور", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات" };
+  const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "messages.html": "رسائل الغياب لأولياء الأمور", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات", "perms.html": "الصلاحيات", "settings.html": "إدارة البوابة" };
   const cur0 = NAV.find((n) => n[0] === page), cur = cur0 ? [cur0[0], FULL[page] || cur0[1], cur0[2], cur0[3]] : [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>

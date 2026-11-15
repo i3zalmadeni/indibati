@@ -311,7 +311,6 @@ PAGES.assignments = () => boot("assignments.html", async (main) => {
 PAGES.settings = () => boot("settings.html", async (main, c) => {
   const list = [];
   if (c.isCoord) list.push(["late", "إعدادات التأخر", "clock"], ["reasons", "أسباب التأخر", "list"], ["att", "إعدادات التحضير", "check"], ["exc", "الأعذار", "file"], ["rewards", "نقاط الانتظام", "star"]);
-  if (c.isPortal || c.isAdmin) list.push(["roles", "الأدوار", "users"]);
   if (!list.length) { main.innerHTML = empty("gear", "لا إعدادات متاحة لدورك", ""); return; }
   tabs(main, list, async (k, body) => {
     const meta = await rpc("ind_meta", { p_task: "view" });
@@ -367,16 +366,21 @@ PAGES.settings = () => boot("settings.html", async (main, c) => {
         try { await rpc("ind_set_reward_settings", { p: { enabled: $("#r1").checked, points: +$("#r2").value, lateness_blocks: $("#r3").checked } }); toast("حُفظت الإعدادات"); $$("[data-t=rewards]")[0].click(); } catch (e) { toast(mapErr(e), true); } };
       $$("[data-w]").forEach((b) => (b.onclick = async () => { try { const r = await rpc("ind_rewards_run", { p_day: b.dataset.w }); toast(r.skipped ? "الأسبوع غير مكتمل أو الاحتساب معطّل" : `مُنح ${r.awarded} طالباً`); $$("[data-t=rewards]")[0].click(); } catch (e) { toast(mapErr(e), true); } }));
     }
-    if (k === "roles") {
-      const S = await rpc("ind_staff_list");
-      const roles = c.isAdmin ? ["coordinator", "affairs", "portal_admin"] : ["coordinator", "affairs"];
-      body.innerHTML = `<div class="card"><p class="sub">الحسابات من النواة الرقمية. مدخلو البيانات لا يحتاجون دوراً هنا: صلاحيتهم من «إدارة التكليفات». مدير النواة يملك صلاحيات المنسق تلقائياً.</p>
-        <input type="search" id="rq" placeholder="بحث بالاسم" style="max-width:320px"><div class="tw mt"><table class="tbl"><thead><tr><th>المنسوب</th>${roles.map((r) => `<th>${ROLE[r]}</th>`).join("")}</tr></thead><tbody>
-        ${S.map((s) => `<tr data-n="${esc(s.name)}"><td><b>${esc(s.name)}</b><br><small>${esc(s.job_title || "")}${s.has_account ? "" : " · بلا حساب دخول"}</small></td>${roles.map((r) => `<td><input type="checkbox" aria-label="${ROLE[r]} – ${esc(s.name)}" data-sid="${s.id}" data-r="${r}" ${s.roles.includes(r) ? "checked" : ""}></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
-      $("#rq").oninput = (e) => $$("tr[data-n]", body).forEach((tr) => (tr.hidden = !tr.dataset.n.includes(e.target.value.trim())));
-      $$("[data-r]", body).forEach((x) => (x.onchange = async () => { try { await rpc("ind_set_role", { p_staff: x.dataset.sid, p_role: x.dataset.r, p_on: x.checked }); toast(x.checked ? "مُنح الدور" : "سُحب الدور"); } catch (e) { x.checked = !x.checked; toast(mapErr(e), true); } }));
-    }
   });
+}, { role: "admin" });
+
+// ============================== الصلاحيات ==============================
+// أدوار انضباطي لمنسوبي النواة: صفحة مستقلة قبل «إدارة البوابة»
+PAGES.perms = () => boot("perms.html", async (main, c) => {
+  if (!(c.isPortal || c.isAdmin)) { main.innerHTML = empty("key", "لا تملك صلاحية إدارة الأدوار", ""); return; }
+  const body = main;
+  const S = await rpc("ind_staff_list");
+  const roles = c.isAdmin ? ["coordinator", "affairs", "portal_admin"] : ["coordinator", "affairs"];
+  body.innerHTML = `<div class="card"><p class="sub">الحسابات من النواة الرقمية. مدخلو البيانات لا يحتاجون دوراً هنا: صلاحيتهم من «إدارة التكليفات». مدير النواة يملك صلاحيات المنسق تلقائياً.</p>
+    <input type="search" id="rq" placeholder="بحث بالاسم" style="max-width:320px"><div class="tw mt"><table class="tbl"><thead><tr><th>المنسوب</th>${roles.map((r) => `<th>${ROLE[r]}</th>`).join("")}</tr></thead><tbody>
+    ${S.map((s) => `<tr data-n="${esc(s.name)}"><td><b>${esc(s.name)}</b><br><small>${esc(s.job_title || "")}${s.has_account ? "" : " · بلا حساب دخول"}</small></td>${roles.map((r) => `<td><input type="checkbox" aria-label="${ROLE[r]} – ${esc(s.name)}" data-sid="${s.id}" data-r="${r}" ${s.roles.includes(r) ? "checked" : ""}></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+  $("#rq").oninput = (e) => $$("tr[data-n]", body).forEach((tr) => (tr.hidden = !tr.dataset.n.includes(e.target.value.trim())));
+  $$("[data-r]", body).forEach((x) => (x.onchange = async () => { try { await rpc("ind_set_role", { p_staff: x.dataset.sid, p_role: x.dataset.r, p_on: x.checked }); toast(x.checked ? "مُنح الدور" : "سُحب الدور"); } catch (e) { x.checked = !x.checked; toast(mapErr(e), true); } }));
 }, { role: "admin" });
 
 // ============================== سجل العمليات ==============================
