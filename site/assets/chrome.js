@@ -109,6 +109,15 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 .ubg-it .ub-ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;flex:none;background:#e7f0fb;color:#2f6fc4}.ubg-it.ok .ub-ic{background:#e2f5ea;color:#1f9d63}.ubg-it.warn .ub-ic{background:#fdf1dc;color:#b06d0c}.ubg-it.bad .ub-ic{background:#fbe5e8;color:#c23646}
 .ubg-it .ub-tx{flex:1;min-width:0}.ubg-it b{display:block;font-size:.98rem;line-height:1.6}.ubg-it small{display:block;color:var(--ink2,#3d566b);font-size:.86rem;line-height:1.7}.ubg-it time{display:block;color:var(--muted,#71859a);font-size:.76rem;margin-top:2px}
 .ubg-it .ub-dot{width:9px;height:9px;border-radius:50%;background:#f0b34a;flex:none;margin-top:8px}
+.ubg-d span{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--soft,#eef8fa);color:var(--ink2,#3d566b);font-size:.75rem;margin-inline-start:4px}
+.ubg .ubg-act{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line,#e2edf1);background:var(--surface,#fff)}.ubg .ubg-act:last-child{border-bottom:0}.ubg .ubg-act.new{background:var(--brandsoft,#e3f6f7)}
+.ubg-body{flex:1;min-width:0}.ubg-body .ub-tx b a{color:inherit;text-decoration:none}.ubg-body .ub-tx b a:hover{text-decoration:underline}
+.ubg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ubg .ubg-acts>a,.ubg .ubg-acts>button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line,#e2edf1);background:var(--surface,#fff);color:var(--brand2,#0c6f82);font:inherit;font-size:.82rem;font-weight:700;text-decoration:none;cursor:pointer;box-shadow:none;margin:0}
+.ubg .ubg-acts>a:hover,.ubg .ubg-acts>button:hover{background:var(--soft,#eef8fa)}
+.ubg .ubg-acts>.pri{background:linear-gradient(135deg,#18a4ab,#0c6f82);border-color:transparent;color:#fff}.ubg .ubg-acts>.pri:hover{filter:brightness(1.06);background:linear-gradient(135deg,#18a4ab,#0c6f82)}
+.ubg .ubg-acts>.bad{color:#c23646;border-color:#f1c9cf}.ubg .ubg-acts>button:disabled{opacity:.55;cursor:wait}
+.ub-tag{display:inline-block;font-style:normal;font-size:.72rem;font-weight:700;color:var(--brand2,#0c6f82);background:var(--soft,#eef8fa);border-radius:7px;padding:1px 8px;margin-bottom:3px}
 .ubg-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:40px 16px;text-align:center;color:var(--muted,#71859a)}.ubg-empty .ub-i{width:40px;height:40px;opacity:.5}.ubg-empty b{color:var(--ink,#0d2b45);font-size:1.05rem}
 @media (max-width:640px){.ubg{padding:16px;border-radius:18px}.ubg-k{grid-template-columns:repeat(2,minmax(0,1fr))}.ubg-mark{width:100%;justify-content:center}.ubg-seg{width:100%}.ubg-seg button{flex:1}}
 @media print{.ub,.ubg-f,.ubg-mark{display:none}}`;
@@ -121,13 +130,20 @@ function ubBarHTML(name, home) {
     <button type="button" class="ub-out" id="out">${ubIco("logout")}<span>خروج</span></button></div>`;
 }
 // تشغيل الشريط بعد إدراجه (يجوز استدعاؤه بعد كل إعادة رسم للشريط). o: { key, uid, load: async () => [عناصر], allUrl, markAll: async () => {} }
-// العنصر: { id, title, body, href, icon, tone: ok|warn|bad|info, t: وقت (اختياري), read: (اختياري؛ وإلا يُحفظ المقروء في هذا المتصفح) }
+// العنصر: { id, title, body, href, icon, tone: ok|warn|bad|info, t: وقت (اختياري), read: (اختياري؛ وإلا يُحفظ المقروء في هذا المتصفح),
+//   tag: وسم قصير (اختياري), group: عنوان تجميع للعناصر بلا وقت في الصفحة (اختياري),
+//   acts: أزرار إجراء HTML يبنيها النظام نفسه (اختياري، تظهر في الصفحة فقط) }
 const UB = { o: null, N: [], at: 0, seen: new Set(), photo: undefined, pages: [] };
 const ubKey = () => "ub-seen-" + ((UB.o && UB.o.key) || "x") + "-" + ((UB.o && UB.o.uid) || "");
 const ubSave = () => { try { localStorage.setItem(ubKey(), JSON.stringify([...UB.seen].slice(-400))); } catch (_) {} };
 const ubUnread = (x) => (x.read != null ? !x.read : !UB.seen.has(String(x.id)));
 const ubFmt = (t) => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleString("ar-SA-u-ca-gregory-nu-latn", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Riyadh" }); };
-const ubItem = (x, i, cls) => `<a class="${cls} ${ubEsc(x.tone || "info")}${ubUnread(x) ? " new" : ""}" href="${ubEsc(x.href || "#")}" data-ubi="${i}"><span class="ub-ic">${ubIco(x.icon || "bell")}</span><span class="ub-tx"><b>${ubEsc(x.title)}</b>${x.body ? `<small>${ubEsc(x.body)}</small>` : ""}${x.t ? `<time>${ubEsc(ubFmt(x.t))}</time>` : ""}</span>${ubUnread(x) ? '<span class="ub-dot" aria-label="غير مقروء"></span>' : ""}</a>`;
+const ubTx = (x, link) => `<span class="ub-tx">${x.tag ? `<em class="ub-tag">${ubEsc(x.tag)}</em>` : ""}<b>${link && x.href ? `<a href="${ubEsc(x.href)}">${ubEsc(x.title)}</a>` : ubEsc(x.title)}</b>${x.body ? `<small>${ubEsc(x.body)}</small>` : ""}${x.t ? `<time>${ubEsc(ubFmt(x.t))}</time>` : ""}</span>`;
+const ubDot = (x) => (ubUnread(x) ? '<span class="ub-dot" aria-label="غير مقروء"></span>' : "");
+// عنصر بإجراءات (في الصفحة) يُرسم كتلة لا رابطاً، كي لا تتداخل الأزرار مع الرابط
+const ubItem = (x, i, cls, page) => (page && x.acts)
+  ? `<div class="${cls} ubg-act ${ubEsc(x.tone || "info")}${ubUnread(x) ? " new" : ""}" data-ubi="${i}"><span class="ub-ic">${ubIco(x.icon || "bell")}</span><div class="ubg-body">${ubTx(x, true)}<div class="ubg-acts">${x.acts}</div></div>${ubDot(x)}</div>`
+  : `<a class="${cls} ${ubEsc(x.tone || "info")}${ubUnread(x) ? " new" : ""}" href="${ubEsc(x.href || "#")}" data-ubi="${i}"><span class="ub-ic">${ubIco(x.icon || "bell")}</span>${ubTx(x)}${ubDot(x)}</a>`;
 function ubPaint() {
   const $u = (s) => document.getElementById(s), C = $u("ubC"), B = $u("ubB"), L = $u("ubL");
   const n = UB.N.filter(ubUnread).length;
@@ -178,7 +194,7 @@ function ubPage(host, sys) {
       <div class="ubg-seg" role="radiogroup" aria-label="النوع">${Object.entries(UB_TONE).map(([k, n]) => `<button type="button" role="radio" data-ubt="${k}">${n}</button>`).join("")}</div>
       <label class="ubg-q">${ubIco("search")}<input type="search" id="ubgQ" placeholder="بحث في الإشعارات" aria-label="بحث في الإشعارات"></label></div>
     <div class="ubg-l" id="ubgL" aria-live="polite"><p class="ub-empty">جارٍ التحميل…</p></div></section>`;
-  const day = (t) => { if (!t) return "يحتاج إجراءً الآن"; const d = new Date(t), k = (x) => x.toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }), now = new Date();
+  const day = (x) => { const t = x.t; if (!t) return x.group || "يحتاج إجراءً الآن"; const d = new Date(t), k = (x) => x.toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }), now = new Date();
     if (isNaN(d)) return "أخرى"; const dd = k(d), td = k(now), yd = k(new Date(now - 864e5)); if (dd > td) return "قادم"; if (dd === td) return "اليوم"; if (dd === yd) return "أمس";
     return now - d < 7 * 864e5 ? "هذا الأسبوع" : "أقدم"; };
   const draw = () => {
@@ -190,8 +206,8 @@ function ubPage(host, sys) {
     if (!UB.loaded) return;
     const q = Q.trim(), list = all.map((x, i) => [x, i]).filter(([x]) => (F === "all" || ubUnread(x)) && (T === "all" || (x.tone || "info") === T) && (!q || (x.title + " " + (x.body || "")).includes(q)));
     if (!list.length) { L.innerHTML = `<div class="ubg-empty">${ubIco("bell")}<b>${all.length ? "لا إشعارات مطابقة" : "لا إشعارات حالياً"}</b><span>${all.length ? "غيّر التصفية لعرض غيرها." : "ستظهر هنا مستجدات النظام وما ينتظر إجراءك."}</span></div>`; return; }
-    const G = []; list.forEach((p) => { const g = day(p[0].t), last = G[G.length - 1]; if (last && last[0] === g) last[1].push(p); else G.push([g, [p]]); });
-    L.innerHTML = G.map(([g, ps]) => `<h3 class="ubg-d">${ubEsc(g)}</h3><div class="ubg-c">${ps.map(([x, i]) => ubItem(x, i, "ubg-it")).join("")}</div>`).join("");
+    const G = new Map(); list.forEach((p) => { const g = day(p[0]); if (!G.has(g)) G.set(g, []); G.get(g).push(p); });
+    L.innerHTML = [...G].map(([g, ps]) => `<h3 class="ubg-d">${ubEsc(g)} <span>${ps.length}</span></h3><div class="ubg-c">${ps.map(([x, i]) => ubItem(x, i, "ubg-it", true)).join("")}</div>`).join("");
   };
   UB.pages = UB.pages.filter((f) => document.body.contains(host) && f !== draw); UB.pages.push(draw);
   host.addEventListener("click", (e) => {
