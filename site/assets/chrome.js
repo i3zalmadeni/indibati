@@ -42,6 +42,9 @@ const footerHTML = `<footer class="uf credit"><div class="wrap uf-in"><span clas
 const UB_SVG = {
   bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  apps: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+  layers: '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>', building: '<path d="M4 21V7l8-4 8 4v14M9 21v-5h6v5M8 10h.01M12 10h.01M16 10h.01"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/>',
   logout: '<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9"/>',
   check: '<path d="M4 12l5 5L20 6"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', alert: '<path d="M12 3l10 18H2zM12 10v5M12 18h.01"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', inbox: '<path d="M3 13l3-8h12l3 8M3 13v6h18v-6M3 13h5l1 3h6l1-3h5"/>',
@@ -67,6 +70,13 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 .ub .ub-i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .ub-c{position:absolute;inset-block-start:-6px;inset-inline-end:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:#f0b34a;color:#3b2a06;font-size:.72rem;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px #17414f;line-height:1}
 .ub-c[hidden],.ub-p[hidden],.ub a.ub-all[hidden]{display:none}
+.ub-p.ub-sp{width:min(500px,calc(100vw - 24px))}.ub-sg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;overflow:auto}
+.ub a.ub-sys{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;border:1px solid var(--line,#e2edf1);background:var(--surface,#fff);color:var(--ink,#0d2b45);text-decoration:none;font-weight:400;white-space:normal;min-height:0;transition:border-color .15s,background .15s}
+.ub a.ub-sys::after{display:none}.ub a.ub-sys:hover{border-color:#18a4ab;background:var(--soft,#eef8fa);color:var(--ink,#0d2b45)}
+.ub a.ub-sys.on{border-color:#18a4ab;background:var(--brandsoft,#e3f6f7)}.ub a.ub-sys:focus-visible{outline:3px solid #f0b34a;outline-offset:2px}
+.ub-sys .ub-ic{background:linear-gradient(135deg,#18a4ab,#0c6f82);color:#fff}.ub-sys .ub-tx{min-width:0}
+.ub .ub-sys b{display:block;font-size:.86rem;line-height:1.4;color:var(--ink,#0d2b45);white-space:normal}.ub .ub-sys small{display:block;font-size:.74rem;line-height:1.5;color:var(--ink2,#3d566b);max-width:none;white-space:normal;overflow:visible}
+.ub a.ub-sys.on small{color:#0c6f82;font-weight:700}
 .ub-p{position:absolute;inset-block-start:calc(100% + 10px);inset-inline-end:0;width:min(370px,calc(100vw - 24px));max-height:72vh;display:flex;flex-direction:column;background:var(--surface,#fff);color:var(--ink,#0d2b45);border:1px solid var(--line,#e2edf1);border-radius:18px;box-shadow:0 18px 44px rgba(8,40,60,.28);z-index:80;overflow:hidden;text-align:start;font-weight:400}
 .ub-ph{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line,#e2edf1)}
 .ub-ph b{font-size:1rem;color:var(--ink,#0d2b45)}.ub-ph button{font:inherit;font-size:.8rem;font-weight:700;color:var(--brand2,#0c6f82);background:none;border:0;cursor:pointer;padding:4px 0}
@@ -89,6 +99,7 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 .ub #out.ub-out,header .ub #out.ub-out{color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);box-shadow:none;transform:none}
 .ub #out.ub-out:hover,header .ub #out.ub-out:hover{background:#c23646;border-color:#c23646;color:#fff}
 @media (max-width:700px){.ub-nm{display:none}.ub a.ub-u{padding-inline-start:6px}}
+@media (max-width:420px){.ub-sg{grid-template-columns:1fr}}
 @media (max-width:520px){.ub{gap:6px}.ub-out span{display:none}.ub-out{padding:0 10px}}
 @media (max-width:900px){.ub-p{position:fixed;inset-inline:12px;inset-block-start:auto;margin-top:10px;width:auto;max-width:520px;margin-inline:auto;max-height:70vh}}
 .ubg{background:var(--surface,#fff);border:1px solid var(--line,#e2edf1);border-radius:22px;padding:22px;margin:16px 0;color:var(--ink,#0d2b45);box-shadow:0 6px 20px rgba(13,43,69,.06)}
@@ -122,9 +133,26 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 @media (max-width:640px){.ubg{padding:16px;border-radius:18px}.ubg-k{grid-template-columns:repeat(2,minmax(0,1fr))}.ubg-mark{width:100%;justify-content:center}.ubg-seg{width:100%}.ubg-seg button{flex:1}}
 @media print{.ub,.ubg-f,.ubg-mark{display:none}}`;
 (function () { if (document.getElementById("ub-css")) return; const s = document.createElement("style"); s.id = "ub-css"; s.textContent = UB_CSS; (document.head || document.documentElement).appendChild(s); })();
+// أنظمة النواة الرقمية: [المسار على الموقع، الاسم، الأيقونة، الوصف]. كلها على أصل واحد فالدخول مشترك،
+// والرابط يفتح «مكتبي الإلكتروني» في لوحة تحكم النظام مباشرة
+const UB_SYS = [
+  ["digital-core/dashboard.html", "النواة الرقمية", "layers", "الهوية الموحدة والسجلات"],
+  ["self-evaluation/admin.html", "التقويم المدرسي الذكي", "check", "المؤشرات والشواهد والتقييم"],
+  ["smart-plans/#dashboard", "الخطط الذكية", "cal", "الخطط والبرامج وتوثيقها"],
+  ["teachers-community/#/home", "مجتمع لبيد المهني", "users", "النمو المهني والمجتمعات"],
+  ["indibati/dashboard.html", "انضباطي", "clock", "الحضور والغياب والتأخر"],
+  ["qiyami/dashboard.html", "قيمي", "star", "النقاط والأوسمة والسلوك"],
+  ["facility-booking/dashboard.html", "احجز مرفق", "building", "حجز المرافق والقاعات"],
+  ["report/desk.html", "مرآة | الملف الشامل", "eye", "الملف الشامل للمتعلم والمعلم"],
+];
+const ubSysHTML = () => { const cur = location.pathname.split("/").filter(Boolean)[0] || "";
+  return UB_SYS.map(([p, n, i, d]) => { const on = p.split("/")[0] === cur;
+    return `<a class="ub-sys${on ? " on" : ""}" href="/${p}"${on ? ' aria-current="page"' : ""}><span class="ub-ic">${ubIco(i)}</span><span class="ub-tx"><b>${ubEsc(n)}</b><small>${on ? "أنت هنا" : ubEsc(d)}</small></span></a>`; }).join(""); };
 // HTML الشريط. home: رابط صفحة المستخدم (ملفه أو حسابه) عند النقر على صورته واسمه
 function ubBarHTML(name, home) {
-  return `<div class="ub"><div class="ub-n"><button type="button" class="ub-bell" id="ubB" aria-label="الإشعارات" aria-expanded="false" aria-haspopup="true" aria-controls="ubP">${ubIco("bell")}<span class="ub-c" id="ubC" hidden></span></button>
+  return `<div class="ub"><div class="ub-n"><button type="button" class="ub-bell ub-swb" id="ubS" aria-label="التنقل بين لوحات تحكم الأنظمة" title="أنظمة النواة الرقمية" aria-expanded="false" aria-haspopup="true" aria-controls="ubSP">${ubIco("apps")}</button>
+    <div class="ub-p ub-sp" id="ubSP" role="dialog" aria-label="أنظمة النواة الرقمية" hidden><div class="ub-ph"><b>انتقل إلى لوحة تحكم نظام آخر</b></div><div class="ub-sg">${ubSysHTML()}</div></div></div>
+    <div class="ub-n"><button type="button" class="ub-bell" id="ubB" aria-label="الإشعارات" aria-expanded="false" aria-haspopup="true" aria-controls="ubP">${ubIco("bell")}<span class="ub-c" id="ubC" hidden></span></button>
     <div class="ub-p" id="ubP" role="dialog" aria-label="الإشعارات" hidden><div class="ub-ph"><b>الإشعارات</b><button type="button" id="ubR">تحديد الكل كمقروء</button></div><div class="ub-l" id="ubL"><p class="ub-empty">جارٍ التحميل…</p></div><a class="ub-all" id="ubA" href="#" hidden>مشاهدة الكل</a></div></div>
     <a class="ub-u" href="${ubEsc(home || "#")}" title="${ubEsc(name)}"><span class="ub-av" id="ubAv" aria-hidden="true">${ubEsc(String(name || "").trim().charAt(0))}</span><span class="ub-nm">${ubEsc(ubShortName(name))}</span></a>
     <button type="button" class="ub-out" id="out">${ubIco("logout")}<span>خروج</span></button></div>`;
@@ -158,7 +186,7 @@ async function ubLoad() {
   UB.N.sort((a, b) => (ubUnread(b) - ubUnread(a)) || (tv(b) - tv(a))); UB.at = Date.now(); UB.loaded = true; ubPaint();
 }
 async function ubMarkAll() { UB.N.forEach((x) => UB.seen.add(String(x.id))); ubSave(); if (UB.o && UB.o.markAll) { try { await UB.o.markAll(); } catch (_) {} } UB.N = UB.N.map((x) => (x.read != null ? { ...x, read: true } : x)); ubPaint(); }
-const ubClose = () => { const P = document.getElementById("ubP"), B = document.getElementById("ubB"); if (P) P.hidden = true; if (B) B.setAttribute("aria-expanded", "false"); };
+const ubClose = () => { [["ubP", "ubB"], ["ubSP", "ubS"]].forEach(([p, b]) => { const P = document.getElementById(p), B = document.getElementById(b); if (P) P.hidden = true; if (B) B.setAttribute("aria-expanded", "false"); }); };
 function ubMount(o) {
   const $u = (s) => document.getElementById(s), B = $u("ubB"), P = $u("ubP"), A = $u("ubA");
   const first = !UB.o || UB.o.key !== o.key || UB.o.uid !== o.uid;
@@ -175,12 +203,16 @@ function ubMount(o) {
     UB.photo = url; put(url);
   }).catch(() => {}); }
   if (A && o.allUrl) { A.href = o.allUrl; A.hidden = false; }
-  B.onclick = (e) => { e.stopPropagation(); const open = P.hidden; P.hidden = !open; B.setAttribute("aria-expanded", String(open)); if (open && Date.now() - UB.at > 60000) ubLoad(); };
+  const SW = $u("ubS"), SP = $u("ubSP");
+  if (SW && SP) { SW.onclick = (e) => { e.stopPropagation(); const open = SP.hidden; ubClose(); SP.hidden = !open; SW.setAttribute("aria-expanded", String(open)); };
+    SP.onclick = (e) => e.stopPropagation(); }
+  B.onclick = (e) => { e.stopPropagation(); const open = P.hidden; if (open) ubClose(); P.hidden = !open; B.setAttribute("aria-expanded", String(open)); if (open && Date.now() - UB.at > 60000) ubLoad(); };
   $u("ubR").onclick = (e) => { e.stopPropagation(); ubMarkAll(); };
   P.onclick = (e) => { e.stopPropagation(); const a = e.target.closest("[data-ubi]"); if (a) { const x = UB.N[+a.dataset.ubi]; if (x) { UB.seen.add(String(x.id)); ubSave(); } ubClose(); } else if (e.target.closest("#ubA")) ubClose(); };
   if (!window.__ubDoc) { window.__ubDoc = true;
     document.addEventListener("click", ubClose);
-    document.addEventListener("keydown", (e) => { const P2 = document.getElementById("ubP"); if (e.key === "Escape" && P2 && !P2.hidden) { ubClose(); const b = document.getElementById("ubB"); if (b) b.focus(); } }); }
+    document.addEventListener("keydown", (e) => { if (e.key !== "Escape") return; const op = [["ubP", "ubB"], ["ubSP", "ubS"]].find(([p]) => { const x = document.getElementById(p); return x && !x.hidden; });
+      if (op) { ubClose(); const b = document.getElementById(op[1]); if (b) b.focus(); } }); }
   if (first || !UB.loaded) ubLoad(); else ubPaint();
 }
 // ===== صفحة الإشعارات الموحّدة التصميم (المصدر نفسه والمقروء نفسه في الجرس) =====
