@@ -155,7 +155,7 @@ function exportCSV(name, headers, rows) {
 // ===== الهيكل والقائمة بحسب الدور =====
 // r: all | absence | lateness | coord | admin(portal) | oversee
 const NAV = [
-  ["dashboard.html", "الرئيسية", "grid", "ملخص اليوم ومهامك", "all"],
+  ["dashboard.html", "مكتبي الإلكتروني", "grid", "ملخص اليوم ومهامك", "all"],
   ["attendance.html", "التحضير", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence"],
   ["locks.html", "التثبيت", "lock", "حالة التحضير والتثبيت لكل فصل وتاريخ", "absence"],
   ["messages.html", "رسائل الغياب", "send", "إشعار أولياء أمور الغائبين برسالة فردية فيها رابط آمن لتقديم العذر", "coord"],
