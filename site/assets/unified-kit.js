@@ -16,8 +16,8 @@
 .pk-hid{display:none!important}
 .pk-more{flex:none;display:inline-flex;align-items:center}
 .pk-more[hidden]{display:none}
-.pk-mb{font:inherit;color:inherit;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap;min-height:40px}
-.pk-mb:hover,.pk-mb[aria-expanded=true]{background:rgba(255,255,255,.2);color:#fff}
+.pk-mb{font:inherit;color:#3b2a06;background:linear-gradient(135deg,#f6c25e,#f0a35e);border:1px solid #f6c25e;border-radius:12px;padding:8px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:800;white-space:nowrap;min-height:40px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.pk-mb:hover,.pk-mb[aria-expanded=true]{background:linear-gradient(135deg,#ffd27a,#f6b25e);color:#2a1d03}
 .pk-mb:focus-visible{outline:3px solid #f0b34a;outline-offset:2px}
 .pk-mb svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
 .pk-mb[aria-expanded=true] svg{transform:rotate(180deg)}
