@@ -210,6 +210,10 @@ async function boot(page, render, o = {}) {
      <main class="wrap" id="main"></main>${footerHTML}`;
   bindNav();
   navBadges();
+  if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "indibati", central: false, after: "#main" });
+  if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
+    PK.mountAnnouncements({ sb, system: "indibati", page: page === "dashboard.html" ? "home" : "all", before: ".pagebar" });
+    if (page === "dashboard.html") PK.welcome("#main", { mode: "before", sb, name: who.name, role: ctx.role }); }
   document.title = cur[1] + " – انضباطي";
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
