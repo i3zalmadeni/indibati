@@ -49,14 +49,15 @@
 .pk-ann-n{flex:none;font-size:.75rem;color:#5b7183;font-variant-numeric:tabular-nums}
 @media print{.pk-ann{display:none}}
 /* بطاقة الترحيب */
-.pk-wc{display:flex;align-items:center;gap:16px;background:var(--herobg,linear-gradient(135deg,#17414f,#0c6f82));color:#fff;border-radius:24px;padding:20px 24px;margin:16px 0;box-shadow:0 10px 28px rgba(12,60,80,.16);position:relative;overflow:hidden;font-family:inherit}
-.pk-wc::after{content:"";position:absolute;inset:auto auto -70% 8%;width:34%;aspect-ratio:1;background:radial-gradient(closest-side,rgba(240,179,74,.26),transparent);pointer-events:none}
+.pk-wc{display:flex;align-items:center;gap:22px;background:linear-gradient(120deg,#0b3442 0%,#0c6f82 55%,#18a4ab 100%);color:#fff;border-radius:28px;padding:26px 32px;margin:18px 0;box-shadow:0 14px 34px rgba(12,60,80,.24);border:1px solid rgba(240,179,74,.45);position:relative;overflow:hidden;font-family:inherit}
+.pk-wc::before{content:"";position:absolute;inset-block:0;inset-inline-end:0;width:8px;background:linear-gradient(180deg,#f6c25e,#f0a35e)}
+.pk-wc::after{content:"";position:absolute;inset:auto auto -80% 6%;width:38%;aspect-ratio:1;background:radial-gradient(closest-side,rgba(240,179,74,.3),transparent);pointer-events:none}
 .pk-wc>*{position:relative}
-.pk-wc-av{width:68px;height:68px;border-radius:50%;flex:none;overflow:hidden;background:rgba(255,255,255,.16);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center}
+.pk-wc-av{width:112px;height:112px;border-radius:50%;flex:none;overflow:hidden;background:rgba(255,255,255,.16);border:4px solid #f6c25e;box-shadow:0 0 0 6px rgba(255,255,255,.14);display:grid;place-items:center}
 .pk-wc-av img,.pk-wc-av svg{width:100%;height:100%;display:block;object-fit:cover}
-.pk-wc-t{min-width:0}.pk-wc-t h2{margin:0;color:#fff;font-size:clamp(1.15rem,3vw,1.6rem);font-weight:800;line-height:1.5;overflow-wrap:anywhere}
-.pk-wc-t p{margin:2px 0 0;color:rgba(255,255,255,.92);font-size:.98rem;font-weight:500}
-@media (max-width:560px){.pk-wc{padding:16px;gap:12px;border-radius:20px}.pk-wc-av{width:54px;height:54px}}
+.pk-wc-t{min-width:0}.pk-wc-t h2{margin:0;color:#fff;font-size:clamp(1.4rem,3.6vw,2.2rem);font-weight:800;line-height:1.4;overflow-wrap:anywhere}
+.pk-wc-t p{margin:6px 0 0;display:inline-block;color:#3b2a06;background:#f6c25e;border-radius:99px;padding:3px 16px;font-size:.98rem;font-weight:800}
+@media (max-width:560px){.pk-wc{padding:18px;gap:14px;border-radius:22px}.pk-wc-av{width:76px;height:76px;border-width:3px}}
 /* إدارة الإعلانات */
 .pk-ad{font-family:inherit;color:#0d2b45}
 .pk-ad .pk-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}.pk-ad .pk-h h3{margin:0;flex:1;min-width:200px}
@@ -285,6 +286,13 @@
   /* ================= 4) بطاقة الترحيب ================= */
   const DEF_AV = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" fill="#2a7f93"/><circle cx="32" cy="25" r="11" fill="#fff" opacity=".9"/><path d="M10 64c2-15 11-22 22-22s20 7 22 22z" fill="#fff" opacity=".9"/></svg>';
   let photoP = null;
+  const shortName = (n) => { const w = String(n || "").trim().split(/\s+/).filter(Boolean); if (w.length <= 2) return w.join(" ");
+    if (w.length === 3 && /^ال/.test(w[1])) return w.join(" ");
+    const pre = ["عبد", "أبو", "ابو", "أبا", "ابا"], mid = ["آل", "ال", "أبو", "ابو", "بن", "بنت", "عبد"];
+    let first = w[0], i = 1; if (pre.includes(first) && w.length > 2) { first += " " + w[1]; i = 2; }
+    let last = w[w.length - 1]; if (w.length - 2 >= i && ["آل", "ال", "أبو", "ابو", "عبد"].includes(w[w.length - 2])) last = w[w.length - 2] + " " + last;
+    return mid.includes(last) ? first : first + " " + last; };
+  PK.shortName = shortName;
   PK.photoUrl = function (sb) {
     if (photoP) return photoP;
     photoP = (async () => {
@@ -300,13 +308,13 @@
     PK._sb = sb; const hyd = () => document.querySelectorAll("[data-pk-av]:not([data-pk-done])").forEach((a) => { a.dataset.pkDone = "1"; PK.photoUrl(PK._sb).then((u) => { if (!u) return; const im = new Image(); im.alt = ""; im.onload = () => { a.textContent = ""; a.appendChild(im); }; im.src = u; }); });
     hyd(); if (!PK._mo) { let t = 0; PK._mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(hyd, 50); }); PK._mo.observe(document.body, { childList: true, subtree: true }); }
   };
-  PK.welcomeHTML = (o) => `<section class="pk-wc" aria-label="بطاقة الترحيب"><span class="pk-wc-av" data-pk-av>${DEF_AV}</span><div class="pk-wc-t"><h2>مرحباً بك، ${esc(o.name || "")}</h2>${o.role ? `<p>${esc(o.role)}</p>` : ""}</div></section>`;
+  PK.welcomeHTML = (o) => `<section class="pk-wc" aria-label="بطاقة الترحيب"><span class="pk-wc-av" data-pk-av>${DEF_AV}</span><div class="pk-wc-t"><h2>مرحباً بك، ${esc(shortName(o.name))}</h2>${o.role ? `<p>${esc(o.role)}</p>` : ""}</div></section>`;
   // host: عنصر أو محدد؛ mode: before | prepend | replace (الافتراضي prepend داخل host)
   PK.welcome = function (host, o) {
     const h = typeof host === "string" ? document.querySelector(host) : host; if (!h) return null;
     document.querySelectorAll(".pk-wcw").forEach((e) => e.remove()); document.querySelectorAll(".pk-wc").forEach((e) => e.remove());
     const html = PK.welcomeHTML(o);
-    h.insertAdjacentHTML(o.mode === "before" ? "beforebegin" : "afterbegin", o.mode === "before" ? `<div class="wrap pk-wcw">${html}</div>` : html);
+    h.insertAdjacentHTML(o.mode === "after" ? "afterend" : o.mode === "before" ? "beforebegin" : "afterbegin", o.mode ? `<div class="wrap pk-wcw">${html}</div>` : html);
     const el = document.querySelector(".pk-wc");
     if (o.sb) PK.use(o.sb);
     return el;
