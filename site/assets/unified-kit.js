@@ -58,6 +58,20 @@
 .pk-wc-t{min-width:0}.pk-wc-t h2{margin:0;color:#fff;font-size:clamp(1.4rem,3.6vw,2.2rem);font-weight:800;line-height:1.4;overflow-wrap:anywhere}
 .pk-wc-t p{margin:6px 0 0;display:inline-block;color:#3b2a06;background:#f6c25e;border-radius:99px;padding:3px 16px;font-size:.98rem;font-weight:800}
 @media (max-width:560px){.pk-wc{padding:18px;gap:14px;border-radius:22px}.pk-wc-av{width:76px;height:76px;border-width:3px}}
+.pk-wc-d{margin-inline-start:auto;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding-inline-start:22px;border-inline-start:1px solid rgba(255,255,255,.3);line-height:1.6;text-align:start;flex:none}
+.pk-wc-d b{font-size:1.02rem;font-weight:800;color:#fff}.pk-wc-d span{color:rgba(255,255,255,.92);font-size:.92rem}
+.pk-wc-y{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:2px 14px;font-weight:700;color:#fff!important}.pk-wc-y[hidden]{display:none}
+@media (max-width:760px){.pk-wc{flex-wrap:wrap}.pk-wc-d{margin-inline-start:0;flex:1 1 100%;border-inline-start:0;border-top:1px solid rgba(255,255,255,.3);padding:10px 0 0}}
+/* بطاقات الإحصائيات في الصفحات الرئيسية */
+main .kpi{background:var(--surface,#fff)!important;border:1px solid var(--line,#e2edf1);border-top:4px solid currentColor;border-radius:20px;padding:18px 20px;gap:16px;box-shadow:0 6px 18px rgba(13,43,69,.07)}
+main .kpi .ic{width:56px;height:56px;border-radius:18px;background:color-mix(in srgb,currentColor 14%,#fff)!important}
+main .kpi .ic svg,main .kpi .ic .ico{width:28px;height:28px}
+main .kpi b{font-size:2.3rem;line-height:1;color:var(--ink,#0d2b45);font-variant-numeric:tabular-nums}
+main .kpi span{display:block;margin-top:6px;color:var(--ink2,#3d566b);font-size:.92rem;font-weight:600}
+main .kpi:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(13,43,69,.13)}
+main .card.brk{border-radius:20px;padding:18px 20px}
+main .brk .row3{margin-top:12px;font-size:.95rem}main .brk .row3 b{font-size:1.05rem;font-variant-numeric:tabular-nums}main .brk .track{height:9px}
+main h3.sec{margin-top:26px;padding-inline-start:12px;border-inline-start:5px solid #f0b34a}
 /* إدارة الإعلانات */
 .pk-ad{font-family:inherit;color:#0d2b45}
 .pk-ad .pk-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}.pk-ad .pk-h h3{margin:0;flex:1;min-width:200px}
@@ -305,10 +319,15 @@
     return photoP;
   };
   PK.use = function (sb) {
-    PK._sb = sb; const hyd = () => document.querySelectorAll("[data-pk-av]:not([data-pk-done])").forEach((a) => { a.dataset.pkDone = "1"; PK.photoUrl(PK._sb).then((u) => { if (!u) return; const im = new Image(); im.alt = ""; im.onload = () => { a.textContent = ""; a.appendChild(im); }; im.src = u; }); });
-    hyd(); if (!PK._mo) { let t = 0; PK._mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(hyd, 50); }); PK._mo.observe(document.body, { childList: true, subtree: true }); }
+    PK._sb = sb; PK.year(sb).then((y) => { if (!y) return; document.querySelectorAll("[data-pk-year]").forEach((e) => { e.textContent = "العام الدراسي " + y; e.hidden = false; }); });
+    const hyd = () => document.querySelectorAll("[data-pk-av]:not([data-pk-done])").forEach((a) => { a.dataset.pkDone = "1"; PK.photoUrl(PK._sb).then((u) => { if (!u) return; const im = new Image(); im.alt = ""; im.onload = () => { a.textContent = ""; a.appendChild(im); }; im.src = u; }); });
+    hyd(); if (!PK._mo) { let t = 0; PK._mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { hyd(); PK.year(PK._sb).then((y) => y && document.querySelectorAll("[data-pk-year][hidden]").forEach((e) => { e.textContent = "العام الدراسي " + y; e.hidden = false; })); }, 50); }); PK._mo.observe(document.body, { childList: true, subtree: true }); }
   };
-  PK.welcomeHTML = (o) => `<section class="pk-wc" aria-label="بطاقة الترحيب"><span class="pk-wc-av" data-pk-av>${DEF_AV}</span><div class="pk-wc-t"><h2>مرحباً بك، ${esc(shortName(o.name))}</h2>${o.role ? `<p>${esc(o.role)}</p>` : ""}</div></section>`;
+  const dateBlock = () => { const d = new Date(), f = (loc, opt) => d.toLocaleDateString(loc, Object.assign({ timeZone: "Asia/Riyadh" }, opt));
+    const h = f("ar-SA-u-ca-islamic-umalqura-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" }), g = f("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric" });
+    return `<div class="pk-wc-d"><span class="pk-wc-y" data-pk-year hidden></span><b>${esc(h)}</b><span>${esc(g)} م</span></div>`; };
+  PK.year = function (sb) { if (!PK._yp) PK._yp = Promise.resolve(sb.rpc("portal_current_year")).then((r) => (r && r.data) || null).catch(() => null); return PK._yp; };
+  PK.welcomeHTML = (o) => `<section class="pk-wc" aria-label="بطاقة الترحيب"><span class="pk-wc-av" data-pk-av>${DEF_AV}</span><div class="pk-wc-t"><h2>مرحباً بك، ${esc(shortName(o.name))}</h2>${o.role ? `<p>${esc(o.role)}</p>` : ""}</div>${dateBlock()}</section>`;
   // host: عنصر أو محدد؛ mode: before | prepend | replace (الافتراضي prepend داخل host)
   PK.welcome = function (host, o) {
     const h = typeof host === "string" ? document.querySelector(host) : host; if (!h) return null;
