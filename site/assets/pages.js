@@ -20,7 +20,7 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
     const pend = d.sections.filter((s) => !s.saved), unl = d.sections.filter((s) => s.saved && !s.locked);
     var XS = { submitted: ["عذر جديد", "warn"], under_review: ["قيد المراجعة", "warn"], approved: ["عذر معتمد", "ok"], rejected: ["عذر مرفوض", "bad"] };
     html += `<h2 class="sec">${notToday ? "آخر يوم دراسي" : "اليوم"} <small class="sub">${esc(fmtBoth(day))}</small></h2>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))">
       <div class="card"><div class="row2"><h3 class="sec" style="margin:0">${ico("check")} لم يكتمل تحضيرها (${pend.length})</h3><a class="btn sm sec" href="attendance.html">التحضير</a></div>
         ${pend.length ? `<div class="pill-l mt">${pend.map((s) => `<a href="attendance.html?s=${s.id}&d=${day}"><span>${esc(s.label)}</span></a>`).join("")}</div>` : '<p class="sub">اكتمل تحضير جميع الفصول.</p>'}</div>
       <div class="card"><div class="row2"><h3 class="sec" style="margin:0">${ico("lock")} حُضّرت ولم تُثبَّت (${unl.length})</h3><a class="btn sm sec" href="locks.html?d=${day}">التثبيت</a></div>
@@ -42,7 +42,7 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
         <div><label for="aft">الحالة</label><select id="aft"><option value="">جميع الحالات</option><option value="absent_unexcused">${STATUS.absent_unexcused}</option><option value="absent_excused">${STATUS.absent_excused}</option></select></div></div>
         <div id="abt"></div>` : `<p class="sub">${d.sections.some((x) => x.saved) ? "لا غائبين مسجلين." : "لم يبدأ التحضير بعد."}</p>`}</div>
     <div id="dx"></div>
-    <div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    <div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
       <div class="card"><h3 class="sec" style="margin-top:0">آخر سبعة أيام</h3><div class="bars">${d.week.map((x) => `<div class="br"><span>${esc(fmtShortDay(x.day))}</span><span><i style="width:${(100 * x.absent) / maxW}%" title="غياب ${x.absent}"></i><i class="l" style="width:${(100 * x.late) / maxW}%;margin-top:3px" title="تأخر ${x.late}"></i></span><small class="mono">${x.absent}/${x.late}</small></div>`).join("")}</div>
         <p class="sub"><span class="badge">الأزرق: غياب</span> <span class="badge warn">الذهبي: تأخر</span></p></div>
       <div class="card"><h3 class="sec" style="margin-top:0">أكثر أسباب التأخر (أسبوع)</h3>${d.top_reasons.length ? d.top_reasons.map((r) => `<div class="row2"><span>${esc(r.name)}</span><b class="mono">${r.count}</b></div>`).join("") : '<p class="sub">لا حالات تأخر.</p>'}</div>
@@ -66,7 +66,7 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
     $("#abx").onclick = () => exportCSV("الغائبون", ["الطالب", "رقم الطالب", "الفصل", "الحالة", "العذر"], shown.map((r) => [r.name, r.no, r.label, STATUS[r.status], r.excuse ? XS[r.excuse][0] : ""]));
   }
   if (c.oversee) { try { const x = await rpc("ind_dashboard_extra");
-    $("#dx").innerHTML = `<div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    $("#dx").innerHTML = `<div class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
       <a class="card" href="excuses.html" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.excuses_new}</b><br><span class="sub">عذر جديد بانتظار المراجعة</span></a>
       <a class="card" href="notifications.html?tab=log" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.notif_queued} · ${x.notif_failed}</b><br><span class="sub">رسالة معلقة · فاشلة</span></a>
       <a class="card" href="escalations.html" style="text-decoration:none"><b class="mono" style="font-size:1.6rem">${x.escalations_active}</b><br><span class="sub">${x.rules_active ? "إجراء نظامي لم يُطبع" : "الإجراءات النظامية غير مفعّلة"}</span></a>

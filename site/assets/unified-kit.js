@@ -84,7 +84,7 @@ main h3.sec{margin-top:26px;padding-inline-start:12px;border-inline-start:5px so
 .pk-st{display:inline-block;font-size:.74rem;font-weight:800;border-radius:99px;padding:1px 10px;margin-inline-end:6px}
 .pk-st.ok{background:#e2f5ea;color:#1f7a4d}.pk-st.off{background:#eef1f4;color:#5b7183}.pk-st.wait{background:#fdf1dc;color:#8a560a}.pk-st.imp{background:#fbe5e8;color:#a52b3a}
 .pk-acts{display:flex;gap:6px;flex-wrap:wrap}
-.pk-f{border:1px solid #cfe2e8;border-radius:16px;background:#f9fdfd;padding:14px;margin-bottom:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.pk-f{border:1px solid #cfe2e8;border-radius:16px;background:#f9fdfd;padding:14px;margin-bottom:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px}
 .pk-f label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.86rem}
 .pk-f .full{grid-column:1/-1}
 .pk-f input,.pk-f select,.pk-f textarea{font:inherit;font-weight:400;border:1px solid #bcd3db;border-radius:10px;padding:8px 10px;background:#fff;color:#0d2b45;min-height:42px;width:100%;box-sizing:border-box}
