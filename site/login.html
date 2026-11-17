@@ -1,10 +1,10 @@
 <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>تسجيل الدخول – انضباطي</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/ui.css"><link rel="stylesheet" href="assets/ind.css"></head><body class="pubsite lgbody">
+<title>تسجيل الدخول – انضباطي</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/core.css"><link rel="stylesheet" href="assets/ui.css"><link rel="stylesheet" href="assets/ind.css"><style>.lgchk{display:flex!important;gap:10px;align-items:flex-start;margin:12px 0 4px!important;font-weight:500;cursor:pointer}.lgchk input{width:auto;margin-top:4px;accent-color:var(--brand)}.lgchk small{display:block;font-weight:400}</style></head><body class="pubsite lgbody">
 <div id="hdr"></div>
-<div class="login card lgc"><div class="lgi" data-core></div><h2>تسجيل الدخول</h2><p class="sub">النواة الرقمية · انضباطي · متوسطة لبيد بن ربيعة</p>
-<p class="sub" id="to" hidden></p>
+<div class="login card lgc"><div class="lgi" data-core></div><h2>النواة الرقمية</h2><p id="to" style="text-align:center;font-weight:800;font-size:1.05rem;color:var(--brand2);margin:2px 0 4px">انضباطي</p><p class="sub">تسجيل الدخول · متوسطة لبيد بن ربيعة</p>
 <form id="f"><label for="e">معرّف الدخول</label><input id="e" type="text" required autocomplete="username" dir="ltr" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" placeholder="أرقام أو حروف إنجليزية">
 <label for="p">كلمة المرور</label><input id="p" type="password" required autocomplete="current-password">
+<label class="lgchk" for="rm"><input id="rm" type="checkbox"><span>حفظ معلوماتي<small class="sub">يحفظ معرّف الدخول على هذا الجهاز فقط، ولا تُحفظ كلمة المرور.</small></span></label>
 <p class="err" id="m" role="alert"></p><button class="btn" id="go">دخول</button></form></div><div id="ftr"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/chrome.js"></script><script src="assets/unified-kit.js"></script><script src="assets/config.js"></script><script>
@@ -25,7 +25,7 @@ const safeNext = (raw) => {
 const qs = new URLSearchParams(location.search);
 const nxt = safeNext(qs.get("next"));
 const after = () => location.replace(nxt ? nxt.href : "dashboard.html");
-if (nxt && nxt.name !== "انضباطي") { const t = document.getElementById("to"); t.textContent = "للدخول إلى " + nxt.name; t.hidden = false; }
+if (nxt) document.getElementById("to").textContent = nxt.name;
 const MSG = {
   nostaff: "هذا الحساب غير مرتبط بسجل منسوب. راجع مدير النواة.",
   inactive: "حسابك غير مفعّل في النواة الرقمية. راجع مدير النواة.",
@@ -39,11 +39,16 @@ const toAuthEmail = (v) => { v = v.trim().toLowerCase(); return v.includes("@") 
 const sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
 // جلسة قائمة: نتابع إلى الوجهة، إلا إن عاد النظام برسالة خطأ (فيكون قد أنهى الجلسة بنفسه).
 if (!MSG[em]) sb.auth.getSession().then(({ data }) => { if (data.session) after(); });
+// حفظ معلوماتي: معرّف الدخول فقط (لا كلمة مرور) على هذا الجهاز؛ مشترك بين أنظمة النواة.
+const RK = "dc_login_id", rmEl = document.getElementById("rm"), idEl = document.getElementById("e");
+try { const sv = localStorage.getItem(RK); if (sv) { idEl.value = sv; rmEl.checked = true; document.getElementById("p").focus(); } } catch (_) {}
+const remember = () => { try { if (rmEl.checked) localStorage.setItem(RK, idEl.value.trim().toLowerCase()); else localStorage.removeItem(RK); } catch (_) {} };
+rmEl.onchange = remember;
 document.getElementById("f").onsubmit = async (ev) => { ev.preventDefault();
   const m = document.getElementById("m"), go = document.getElementById("go"); if (go.disabled) return;
   m.textContent = ""; go.disabled = true;
   const { error } = await sb.auth.signInWithPassword({ email: toAuthEmail(document.getElementById("e").value), password: document.getElementById("p").value });
-  if (!error) { after(); return; }
+  if (!error) { remember(); after(); return; }
   go.disabled = false;
   m.textContent = /banned/.test(error.code || "") ? "هذا الحساب موقوف. راجع مدير النواة."
     : (error.code === "invalid_credentials" || error.status === 400) ? "بيانات الدخول غير صحيحة." : "تعذر الاتصال بالخادم، حاول مرة أخرى."; };
