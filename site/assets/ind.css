@@ -42,7 +42,7 @@
 .savebar .dirty{color:var(--warn);font-weight:700}
 
 /* جدول حالة الفصول */
-.secgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.secgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:10px}
 .sec-c{border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:6px}
 .sec-c{color:#fff;border:0;box-shadow:0 6px 16px rgba(20,40,60,.14);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden}
 .sec-c:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(20,40,60,.2)}
