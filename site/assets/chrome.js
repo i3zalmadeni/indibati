@@ -10,7 +10,7 @@ const moeHTML = '<span class="moe"><b>وزارة التعليم</b><small>الم
 const UF_PROJECT = "انضباطي";
 const UF_HOW_URL = "https://i3zalmadeni.netlify.app/projects";
 const UF_ME_URL = "https://i3zalmadeni.netlify.app/me";
-const UF_CSS = `footer.uf{--uf-navy:#102c3b;--uf-blue:#3f7592;--uf-teal:#39a6a3;--uf-orange:#f0a35e;border-top:1px solid var(--line,#e2edf1);background:var(--surface,#fff);color:var(--ink,#0d2b45);font-family:inherit;margin-top:0}
+const UF_CSS = `footer.uf{--uf-navy:#102c3b;--uf-blue:#3f7592;--uf-teal:#39a6a3;--uf-orange:#f0a35e;border-top:1px solid var(--line,#e2edf1);background:var(--surface,#fff);color:var(--ink,#0d2b45);font-family:inherit;margin-top:clamp(44px,6vw,72px)}
 footer.uf .uf-in{display:flex;align-items:center;justify-content:flex-start;gap:16px;flex-wrap:wrap;padding-block:16px}
 footer.uf .uf-moe{display:flex;flex-direction:column;align-items:center;line-height:1.2;padding-inline-start:10px;border-inline-start:2px solid var(--uf-orange)}
 footer.uf .uf-moe b{font-size:.9rem;font-weight:800}footer.uf .uf-moe small{font-size:.62rem;color:var(--muted,#71859a)}
