@@ -12,7 +12,7 @@ pubInit("login.html");
 // صفحة الدخول الموحدة للنواة الرقمية، نسخة داخل نظام «انضباطي». الأنظمة على الأصل نفسه وقاعدة النواة نفسها،
 // فالجلسة تُشارَك تلقائياً مع بقية الأنظمة. next لا يُقبل إلا داخل هذا النظام أو أحد أنظمة النواة المعروفة.
 const HOME = location.pathname.replace(/[^/]*$/, "");
-const SYSTEMS = [{ p: HOME.toLowerCase(), n: "انضباطي" }, { p: "/digital-core/", n: "النواة الرقمية" }, { p: "/self-evaluation/", n: "التقويم الذاتي الذكي" }, { p: "/teachers-community/", n: "مجتمع لبيد المهني" }, { p: "/smart-plans/", n: "الخطط الذكية" }, { p: "/facility-booking/", n: "احجز مرفق" }, { p: "/qiyami/", n: "قيمي" }];
+const SYSTEMS = [{ p: HOME.toLowerCase(), n: "انضباطي" }, { p: "/digital-core/", n: "النواة الرقمية" }, { p: "/self-evaluation/", n: "التقويم الذاتي الذكي" }, { p: "/teachers-community/", n: "المجتمع المهني الذكي" }, { p: "/smart-plans/", n: "الخطط الذكية" }, { p: "/facility-booking/", n: "احجز مرفق" }, { p: "/qiyami/", n: "قيمي" }];
 const safeNext = (raw) => {
   if (!raw) return null;
   try {

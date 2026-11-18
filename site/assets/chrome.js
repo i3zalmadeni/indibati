@@ -140,7 +140,7 @@ const UB_SYS = [
   ["digital-core/dashboard.html", "النواة الرقمية", "layers", "الهوية الموحدة والسجلات"],
   ["self-evaluation/admin.html", "التقويم المدرسي الذكي", "check", "المؤشرات والشواهد والتقييم"],
   ["smart-plans/#dashboard", "الخطط الذكية", "cal", "الخطط والبرامج وتوثيقها"],
-  ["teachers-community/#/home", "مجتمع لبيد المهني", "users", "النمو المهني والمجتمعات"],
+  ["teachers-community/#/home", "المجتمع المهني الذكي", "users", "النمو المهني والمجتمعات"],
   ["indibati/dashboard.html", "انضباطي", "clock", "الحضور والغياب والتأخر"],
   ["qiyami/dashboard.html", "قيمي", "star", "النقاط والأوسمة والسلوك"],
   ["facility-booking/dashboard.html", "احجز مرفق", "building", "حجز المرافق والقاعات"],

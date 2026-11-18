@@ -8,7 +8,7 @@
   const PK = (window.PK = {});
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const reduce = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
-  PK.SYSTEMS = [["core", "النواة الرقمية"], ["smart_plans", "الخطط الذكية"], ["self_evaluation", "التقويم المدرسي الذكي"], ["teachers_community", "مجتمع النمو المهني"], ["indibati", "انضباطي"], ["qiyami", "قيمي"], ["facility_booking", "حجز المرافق"], ["mirat", "الملف الشامل"]];
+  PK.SYSTEMS = [["core", "النواة الرقمية"], ["smart_plans", "الخطط الذكية"], ["self_evaluation", "التقويم المدرسي الذكي"], ["teachers_community", "المجتمع المهني الذكي"], ["indibati", "انضباطي"], ["qiyami", "قيمي"], ["facility_booking", "حجز المرافق"], ["mirat", "الملف الشامل"]];
   const SYSNAME = Object.fromEntries(PK.SYSTEMS);
 
   const CSS = `
