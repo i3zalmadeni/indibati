@@ -88,13 +88,19 @@ select t_as(2);
 select t_ok((ind_save_attendance('00000000-0000-0000-0000-00000000c001', '2026-11-10', '[{"student_id":"00000000-0000-0000-0000-000000000503","status":"absent_unexcused"}]'))->>'absent' = '1', 'تسجيل غياب بتاريخ سابق غير مثبت');
 
 -- 7) تثبيت فصل واحد، ثم منع المدخل من التعديل
-select t_ok(jsonb_array_length(ind_lock('2026-11-12', 'list', array['00000000-0000-0000-0000-00000000c001']::uuid[])->'locked') = 1, 'تثبيت فصل واحد');
+select t_ok(ind_lock('2026-11-12', 'list', array['00000000-0000-0000-0000-00000000c001']::uuid[])->>'error' = 'forbidden', 'مدخل البيانات لا يثبّت حتى فصله المسند');
+select t_ok(ind_lock('2026-11-12', 'all')->>'error' = 'forbidden', 'مدخل البيانات لا يثبّت الجميع');
+select t_as(1);
+select t_ok(jsonb_array_length(ind_lock('2026-11-12', 'list', array['00000000-0000-0000-0000-00000000c001']::uuid[])->'locked') = 1, 'المنسق يثبّت فصلاً واحداً');
+select t_as(2);
 select t_ok(t_err($$select ind_save_attendance('00000000-0000-0000-0000-00000000c001', '2026-11-12', '[]')$$) = 'locked', 'منع مدخل البيانات من تعديل سجل مثبت');
 select t_ok((ind_roster('00000000-0000-0000-0000-00000000c001', '2026-11-12')->>'can_edit')::boolean = false, 'الواجهة تعرض السجل للقراءة فقط');
 select t_ok(ind_unlock('2026-11-12', 'تصحيح', 'list', array['00000000-0000-0000-0000-00000000c001']::uuid[])->>'error' = 'forbidden', 'المدخل لا يلغي التثبيت');
 select t_ok(ind_lock('2026-11-12', 'list', array['00000000-0000-0000-0000-00000000c002']::uuid[])->>'error' = 'forbidden', 'المدخل لا يثبت فصلاً غير مسند');
 -- لا يجوز التسجيل بتاريخ سابق في فصل مثبت لذلك التاريخ
+select t_as(1);
 select ind_lock('2026-11-10', 'list', array['00000000-0000-0000-0000-00000000c001']::uuid[]);
+select t_as(2);
 select t_ok(t_err($$select ind_save_attendance('00000000-0000-0000-0000-00000000c001', '2026-11-10', '[]')$$) = 'locked', 'منع التسجيل بتاريخ سابق مثبت');
 
 -- 8) المنسق: إلغاء التثبيت بسبب إلزامي، ثم التعديل، ثم إعادة التثبيت (لتاريخ سابق)
@@ -110,6 +116,7 @@ select t_ok((select e->'old' from jsonb_array_elements(ind_audit_list(500, 'atte
 select t_as(3);
 select ind_save_attendance('00000000-0000-0000-0000-00000000c002', '2026-11-12', '[]');
 select ind_save_attendance('00000000-0000-0000-0000-00000000c003', '2026-11-12', '[]');
+select t_as(1);
 select t_ok(jsonb_array_length(ind_lock('2026-11-12', 'list', array['00000000-0000-0000-0000-00000000c002','00000000-0000-0000-0000-00000000c003']::uuid[])->'locked') = 2, 'تثبيت عدة فصول');
 select t_as(1);
 select t_ok(jsonb_array_length(ind_lock('2026-11-11', 'all')->'skipped_unsaved') = 3, 'تثبيت الجميع يتخطى الفصول غير المحفوظة');

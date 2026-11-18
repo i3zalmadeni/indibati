@@ -223,7 +223,7 @@ PAGES.attendance = () => boot("attendance.html", async (main, c) => {
       ${state.students.length ? `<ol class="roster" id="rl">${state.students.map((s, i) => `<li data-id="${s.id}" data-st="${s.status}"><span class="n">${i + 1}</span><div><b>${esc(s.name)}</b><small class="mono">${esc(s.no || "")} · ${esc(state.section.grade_name)} – ${esc(state.section.name)}</small></div>
         <div class="seg" role="group" aria-label="حالة ${esc(s.name)}">${["present", "absent_excused", "absent_unexcused"].map((k) => `<button type="button" data-v="${k}" aria-pressed="${s.status === k}" ${ro ? "disabled" : ""}>${STATUS[k]}</button>`).join("")}</div></li>`).join("")}</ol>`
         : empty("users", "لا طلاب مسجلون في هذا الفصل في النواة الرقمية", "تُدار قوائم الطلاب من سجل المتعلمين في النواة.")}
-      <div class="savebar"><span id="dirty"></span>${ro ? "" : `<div class="acts"><button class="btn" id="save">${ico("check")}حفظ التحضير</button>${state.saved || state.students.length ? `<button class="btn sec" id="saveLock">${ico("lock")}حفظ وتثبيت</button>` : ""}</div>`}</div>`;
+      <div class="savebar"><span id="dirty"></span>${ro ? "" : `<div class="acts"><button class="btn" id="save">${ico("check")}حفظ التحضير</button>${c.isCoord && (state.saved || state.students.length) ? `<button class="btn sec" id="saveLock">${ico("lock")}حفظ وتثبيت</button>` : ""}</div>`}</div>`;
     paintTally();
     const rl = $("#rl");
     if (rl && !ro) rl.addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return; const li = b.closest("li"), st = state.students.find((x) => x.id === li.dataset.id);
@@ -234,7 +234,7 @@ PAGES.attendance = () => boot("attendance.html", async (main, c) => {
       const btns = $$(".savebar button"); btns.forEach((b) => (b.disabled = true));
       try {
         const abs = state.students.filter((s) => s.status !== "present").map((s) => ({ student_id: s.id, status: s.status }));
-        if (andLock) { const ok = await confirmBox("حفظ التحضير وتثبيته", `سيُحفظ التحضير (${abs.length} غائب) ويُثبَّت، ولن تتمكن من تعديله بعد التثبيت إلا عبر منسق الغياب.`, { okText: "حفظ وتثبيت" }); if (!ok) return; }
+        if (andLock) { const ok = await confirmBox("حفظ التحضير وتثبيته", `سيُحفظ التحضير (${abs.length} غائب) ويُثبَّت، ولن يتمكن مدخل البيانات من تعديله بعد التثبيت.`, { okText: "حفظ وتثبيت" }); if (!ok) return; }
         const r = await rpc("ind_save_attendance", { p_section: state.section.id, p_day: state.day, p_absences: abs, p_reason: null });
         dirty = false;
         if (andLock) { const l = await rpc("ind_lock", { p_day: state.day, p_scope: "list", p_sections: [state.section.id] }); toast(l.locked.length ? "حُفظ التحضير وثُبّت" : "حُفظ التحضير"); }
@@ -252,7 +252,7 @@ PAGES.attendance = () => boot("attendance.html", async (main, c) => {
 PAGES.locks = () => boot("locks.html", async (main, c) => {
   const meta = await rpc("ind_meta", { p_task: c.oversee ? "view" : "absence" });
   const qs = new URLSearchParams(location.search);
-  const canLock = c.isCoord || c.absence;
+  const canLock = c.isCoord;
   main.innerHTML = `<div class="card"><div class="pickbar"><div><label for="ld">التاريخ</label><input type="date" id="ld" max="${meta.today}" value="${esc(qs.get("d") || lastSchoolDay(meta))}"><div class="dayhint" id="ldh"></div></div>
     <div><label for="lg">الصف</label><select id="lg"><option value="">جميع الصفوف</option>${meta.grades.map((g) => `<option value="${g.code}">${esc(g.name)}</option>`).join("")}</select></div></div>
     <div class="acts" id="la"></div></div><div id="lb" class="mt"></div>`;

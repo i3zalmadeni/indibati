@@ -33,10 +33,8 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   await p.click("#save"); await p.waitForSelector(".toast"); await p.waitForTimeout(400);
   ok((await p.textContent("#dirty")).includes("حُفظ"), "الحفظ ثم إعادة التحميل من الخادم");
   ok((await p.$$eval('#rl li[data-st="absent_unexcused"]', (l) => l.length)) === 2, "الغياب محفوظ في القاعدة");
-  await p.click("#saveLock"); await p.click(".md #ok"); await p.waitForSelector(".lockst.on");
-  ok(await p.$eval('#rl li button', (b) => b.disabled), "بعد التثبيت: القائمة للقراءة فقط");
-  ok(!(await p.$("#save")), "لا زر حفظ بعد التثبيت");
-  await shot(p, "02-attendance-locked");
+  ok(!(await p.$("#saveLock")), "مدخل البيانات لا يرى زر الحفظ والتثبيت");
+  await shot(p, "02-attendance-saved");
   ok(p.errs.length === 0, "لا أخطاء JavaScript (مدخل الغياب): " + p.errs.join(" | "));
 
   // 2) المدخل نفسه يحاول فتح فصل غير مسند عبر الرابط
