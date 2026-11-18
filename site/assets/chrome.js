@@ -40,6 +40,7 @@ const footerHTML = `<footer class="uf credit"><div class="wrap uf-in"><span clas
 // النسخة نفسها في كل الأنظمة. كل نظام يمرّر مصدر إشعاراته ورابط «مشاهدة الكل» إن وُجدت صفحة للإشعارات.
 // زر الخروج يحمل المعرّف out، فيعمل معه معالج الخروج الموجود في كل نظام دون تغيير.
 const UB_SVG = {
+  chart: '<path d="M4 20v-7M10 20V5M16 20v-10M22 20H2"/>',
   bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   apps: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
@@ -143,6 +144,7 @@ const UB_SYS = [
   ["indibati/dashboard.html", "انضباطي", "clock", "الحضور والغياب والتأخر"],
   ["qiyami/dashboard.html", "قيمي", "star", "النقاط والأوسمة والسلوك"],
   ["facility-booking/dashboard.html", "احجز مرفق", "building", "حجز المرافق والقاعات"],
+  ["athar/dashboard.html", "أثر", "chart", "قياس الأثر وإدارة الاستبانات"],
   ["report/desk.html", "مرآة | الملف الشامل", "eye", "الملف الشامل للمتعلم والمعلم"],
 ];
 const ubSysHTML = () => { const cur = location.pathname.split("/").filter(Boolean)[0] || "";

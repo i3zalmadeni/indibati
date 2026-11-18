@@ -203,7 +203,7 @@ async function boot(page, render, o = {}) {
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
-     <div class="dnav"><div class="wrap dn"><div class="dnav-in">${NAV.filter((n) => ok(n[4])).map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
+     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${NAV.filter((n) => ok(n[4])).map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
      <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime">${esc(fmtHijri(todayISO()))}</span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
@@ -211,6 +211,15 @@ async function boot(page, render, o = {}) {
   bindNav();
   navBadges();
   if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "indibati", central: false, after: "#main" });
+  // قائمة الجوال: زر «القائمة» يفتح لائحة عمودية بكل التبويبات (على الشاشات العريضة يبقى الشريط الأفقي كما هو)
+  (() => { const d = document.querySelector(".dnav"), b = document.getElementById("dmb"); if (!d || !b) return;
+    const set = (o) => { d.classList.toggle("open", o); b.setAttribute("aria-expanded", o); };
+    b.onclick = (e) => { e.stopPropagation(); set(!d.classList.contains("open")); };
+    d.querySelector(".dnav-in").addEventListener("click", (e) => { if (e.target.closest("a")) set(false); });
+    document.addEventListener("click", (e) => { if (!d.contains(e.target)) set(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && d.classList.contains("open")) { set(false); b.focus(); } });
+    matchMedia("(min-width:761px)").addEventListener("change", (m) => { if (m.matches) set(false); });
+  })();
   if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
     PK.mountAnnouncements({ sb, system: "indibati", page: page === "dashboard.html" ? "home" : "all", before: ".pagebar" });
     if (page === "dashboard.html") PK.welcome("#main", { mode: "before", sb, name: who.name, role: ctx.role }); }
