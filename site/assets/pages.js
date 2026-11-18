@@ -74,12 +74,119 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
       <div class="card"><b>الأكثر تأخراً</b>${x.top_late.slice(0, 3).map((s) => `<div class="row2"><a href="student.html?id=${s.id}">${esc(s.name)}</a><b class="mono">${s.n}</b></div>`).join("") || '<p class="sub">—</p>'}</div></div>`; } catch (_) {} }
 });
 
+// ============================== التحضير الأسبوعي (للمدير ومنسق الغياب) ==============================
+// يعتمد على الدوال نفسها (ind_roster لقراءة كل يوم، وind_save_attendance لحفظ كل يوم تغيّر)،
+// فتبقى الصلاحيات والتثبيت وسجل العمليات والتحقق من التاريخ على الخادم كما في التحضير اليومي.
+const WK_NAMES = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
+const WK_NEXT = { present: "absent_excused", absent_excused: "absent_unexcused", absent_unexcused: "present" };
+const WK_SHORT = { present: "حاضر", absent_excused: "بعذر", absent_unexcused: "بدون عذر" };
+const wkAdd = (iso, n) => new Date(d12(iso).getTime() + n * 864e5).toISOString().slice(0, 10);
+const wkStart = (iso) => wkAdd(iso, -dow(iso));
+const attModeTabs = (on) => `<nav class="modetabs" aria-label="نمط التحضير"><a href="attendance.html"${on === "day" ? ' class="on" aria-current="page"' : ""}>${ico("check")}التحضير اليومي</a><a href="attendance.html?v=week"${on === "week" ? ' class="on" aria-current="page"' : ""}>${ico("calendar")}التحضير الأسبوعي</a></nav>`;
+
+async function attendanceWeek(main, c, meta) {
+  const qs = new URLSearchParams(location.search), wend = meta.attendance?.weekend || [];
+  const h1 = $(".pagebar h1"), pd = $(".pagebar .pb-d"); if (h1) h1.textContent = "التحضير الأسبوعي"; if (pd) pd.textContent = "من الأحد إلى الخميس لجميع طلاب الفصل، مع إمكانية تعديل الأيام غير المثبتة"; document.title = "التحضير الأسبوعي – انضباطي";
+  main.innerHTML = `${attModeTabs("week")}<div class="card"><div id="pick"></div>
+    <div class="wkbar"><div class="acts"><button type="button" class="btn sm sec" id="wPrev">الأسبوع السابق</button><button type="button" class="btn sm sec" id="wNow">هذا الأسبوع</button><button type="button" class="btn sm sec" id="wNext">الأسبوع التالي</button></div>
+    <div><label for="wDate">اختر أي تاريخ من الأسبوع</label><input type="date" id="wDate" max="${esc(meta.today)}"></div></div></div>
+    <div class="card mt"><div id="body">${empty("calendar", "اختر الفصل لعرض تحضير الأسبوع", "يعرض الأسبوع من الأحد إلى الخميس لجميع طلاب الفصل، ويمكنك تعديل أي يوم غير مثبت.")}</div></div>`;
+  const body = $("#body"), WD = $("#wDate");
+  let week = wkStart(/^\d{4}-\d{2}-\d{2}$/.test(qs.get("w") || "") ? qs.get("w") : lastSchoolDay(meta)), S = null, seq = 0;
+  if (week > meta.today) week = wkStart(meta.today);
+
+  const changedDays = () => (!S ? [] : S.days.filter((d) => d.can && (S.force.has(d.iso) || S.students.some((s) => s.cells[d.iso] !== undefined && s.cells[d.iso] !== s.orig[d.iso]))));
+  const isDirty = () => changedDays().length > 0;
+  const leave = () => !isDirty() || confirm("لديك تغييرات لم تُحفظ. هل تريد تجاهلها؟");
+  window.addEventListener("beforeunload", (e) => { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
+
+  const picker = sectionPicker($("#pick"), meta, { withDay: false, section: qs.get("s"), onChange: () => { if (leave()) load(); } });
+  const goWeek = (w) => { if (w > meta.today || !leave()) return; week = wkStart(w); load(); };
+  $("#wPrev").onclick = () => goWeek(wkAdd(week, -7));
+  $("#wNext").onclick = () => goWeek(wkAdd(week, 7));
+  $("#wNow").onclick = () => goWeek(meta.today);
+  WD.onchange = () => { if (WD.value) goWeek(WD.value); else WD.value = week; };
+
+  const paint = () => {
+    S.days.forEach((d) => { if (d.off) return; const n = { absent_excused: 0, absent_unexcused: 0 };
+      S.students.forEach((s) => { const v = s.cells[d.iso]; if (v && v !== "present") n[v]++; });
+      const f = $(`[data-f="${d.iso}"]`); if (f) f.innerHTML = `<span class="e">بعذر <b class="mono">${n.absent_excused}</b></span><span class="u">بدون عذر <b class="mono">${n.absent_unexcused}</b></span>`; });
+    S.students.forEach((s) => { const t = $(`[data-t="${s.id}"]`); if (t) t.textContent = S.days.filter((d) => s.cells[d.iso] && s.cells[d.iso] !== "present").length; });
+    const k = changedDays().length, el = $("#wdirty");
+    if (el) { el.textContent = k ? `تغييرات لم تُحفظ في ${k} من الأيام` : "لا تغييرات غير محفوظة"; el.className = k ? "dirty" : "sub"; }
+    const sv = $("#wsave"); if (sv) sv.disabled = !k;
+  };
+
+  const render = () => {
+    const { section, days, students } = S, usable = days.filter((d) => !d.off);
+    const th = (d) => { const bd = d.off === "weekend" ? ["إجازة", ""] : d.off === "future" ? ["لم يحن بعد", ""] : d.locked ? ["مثبت", "ok"] : d.saved ? ["محفوظ", "info"] : ["لم يُحضَّر", "warn"];
+      return `<th scope="col" class="wk-d${d.off ? " off" : ""}"><b>${WK_NAMES[d.i]}</b><span class="wk-dt">${esc(d12(d.iso).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", timeZone: "UTC" }))}</span><small>${esc(fmtHijri(d.iso))}</small>
+        <span class="badge ${bd[1]}">${bd[0]}</span>${!d.off && d.can ? `<button type="button" class="btn sm sec" data-all="${d.iso}">الجميع حاضر</button>` : ""}${d.locked ? `<a class="btn sm sec" href="locks.html?d=${d.iso}">إلغاء التثبيت</a>` : ""}</th>`; };
+    const cell = (s, d) => { if (d.off) return '<td class="wk-x">—</td>'; const v = s.cells[d.iso];
+      if (v === undefined) return '<td class="wk-x" title="غير مقيد في الفصل في هذا اليوم">—</td>';
+      return `<td><button type="button" class="wk-c" data-s="${s.id}" data-d="${d.iso}" data-st="${v}" ${d.can ? "" : "disabled"} aria-label="${esc(s.name)} — ${WK_NAMES[d.i]} — ${STATUS[v]}">${WK_SHORT[v]}</button></td>`; };
+    body.innerHTML = `<div class="row2"><div><h3 style="margin:0">${esc(section.grade_name)} – ${esc(section.name)}</h3>
+        <p class="sub" style="margin:2px 0">الأسبوع من ${esc(fmtBoth(days[0].iso))} إلى ${esc(fmtBoth(days[4].iso))}</p></div>
+        <input type="search" id="wflt" placeholder="بحث سريع باسم الطالب أو رقمه" style="max-width:320px" aria-label="بحث في القائمة"></div>
+      ${usable.some((d) => d.locked) ? '<p class="note">الأيام المثبتة تُعرض للقراءة فقط، ويُلغى تثبيتها من زر «إلغاء التثبيت» في رأس العمود.</p>' : ""}
+      <p class="sub" style="margin:8px 0">اضغط على خانة الطالب للتبديل بين: حاضر ← غائب بعذر ← غائب بدون عذر.</p>
+      ${students.length ? `<div class="tw"><table class="wk" id="wk"><thead><tr><th scope="col" class="wk-s">الطالب</th>${days.map(th).join("")}<th scope="col" class="wk-tt">غياب الأسبوع</th></tr></thead>
+        <tbody>${students.map((s, i) => `<tr data-id="${s.id}"><th scope="row" class="wk-s"><span class="n">${i + 1}</span><span><b>${esc(s.name)}</b><small class="mono">${esc(s.no || "")}</small></span></th>${days.map((d) => cell(s, d)).join("")}<td class="wk-tt mono" data-t="${s.id}">0</td></tr>`).join("")}</tbody>
+        <tfoot><tr><th scope="row" class="wk-s">المجموع</th>${days.map((d) => (d.off ? '<td class="wk-x">—</td>' : `<td class="wk-f" data-f="${d.iso}"></td>`)).join("")}<td></td></tr></tfoot></table></div>`
+        : empty("users", "لا طلاب مسجلون في هذا الفصل في النواة الرقمية", "تُدار قوائم الطلاب من سجل المتعلمين في النواة.")}
+      <div class="savebar"><span id="wdirty"></span><div class="acts"><button type="button" class="btn" id="wsave" disabled>${ico("check")}حفظ تحضير الأسبوع</button></div></div><div id="werr" role="alert"></div>`;
+    const wk = $("#wk");
+    $("#wflt").oninput = (e) => { const q = e.target.value.trim(); $$("tbody tr", wk).forEach((tr) => { const s = S.students.find((x) => x.id === tr.dataset.id); tr.hidden = !!q && !(s.name.includes(q) || String(s.no || "").includes(q)); }); };
+    if (wk) wk.addEventListener("click", (e) => {
+      const b = e.target.closest("button.wk-c"), a = e.target.closest("button[data-all]");
+      if (b) { const s = S.students.find((x) => x.id === b.dataset.s), v = WK_NEXT[s.cells[b.dataset.d]]; s.cells[b.dataset.d] = v; b.dataset.st = v; b.textContent = WK_SHORT[v];
+        b.setAttribute("aria-label", `${s.name} — ${WK_NAMES[S.days.find((d) => d.iso === b.dataset.d).i]} — ${STATUS[v]}`); paint(); }
+      else if (a) { const iso = a.dataset.all; S.students.forEach((s) => { if (s.cells[iso] !== undefined) s.cells[iso] = "present"; }); S.force.add(iso);
+        $$(`button.wk-c[data-d="${iso}"]`, wk).forEach((x) => { x.dataset.st = "present"; x.textContent = WK_SHORT.present; x.setAttribute("aria-label", `${S.students.find((y) => y.id === x.dataset.s).name} — ${WK_NAMES[S.days.find((d) => d.iso === iso).i]} — ${STATUS.present}`); }); paint(); }
+    });
+    $("#wsave").onclick = save; paint();
+  };
+
+  async function save() {
+    const ds = changedDays(); if (!ds.length) return;
+    const btn = $("#wsave"), errs = []; btn.disabled = true;
+    for (const d of ds) {
+      try {
+        const abs = S.students.filter((s) => s.cells[d.iso] !== undefined && s.cells[d.iso] !== "present").map((s) => ({ student_id: s.id, status: s.cells[d.iso] }));
+        await rpc("ind_save_attendance", { p_section: S.sec, p_day: d.iso, p_absences: abs, p_reason: null });
+        d.saved = true; S.force.delete(d.iso); S.students.forEach((s) => { if (s.cells[d.iso] !== undefined) s.orig[d.iso] = s.cells[d.iso]; });
+      } catch (e) { errs.push(`${WK_NAMES[d.i]} ${fmtShortDay(d.iso)}: ${mapErr(e)}`); }
+    }
+    if (!errs.length) { toast(`حُفظ تحضير ${ds.length} ${ds.length === 1 ? "يوم" : "أيام"}`); await load(); return; }
+    toast(`حُفظ ${ds.length - errs.length} من ${ds.length}، وتعذر حفظ الباقي`, true); render();
+    $("#werr").innerHTML = `<div class="note bad"><b>تعذر حفظ الأيام التالية، وتغييراتها باقية على الشاشة:</b><ul>${errs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  }
+
+  async function load() {
+    const sec = picker.get().section, my = ++seq; S = null; WD.value = week; $("#wNext").disabled = wkAdd(week, 7) > meta.today;
+    if (!sec) { body.innerHTML = empty("calendar", "اختر الفصل لعرض تحضير الأسبوع", "يعرض الأسبوع من الأحد إلى الخميس لجميع طلاب الفصل."); return; }
+    history.replaceState(null, "", `?v=week&s=${sec}&w=${week}`);
+    body.innerHTML = loading("جارٍ جلب تحضير الأسبوع من النواة الرقمية…");
+    const days = WK_NAMES.map((_, i) => { const iso = wkAdd(week, i); return { i, iso, off: wend.includes(i) ? "weekend" : iso > meta.today ? "future" : null }; });
+    let res; try { res = await Promise.all(days.map((d) => (d.off ? null : rpc("ind_roster", { p_section: sec, p_day: d.iso })))); }
+    catch (e) { if (my === seq) body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; return; }
+    if (my !== seq) return;
+    const st = new Map(); let section = null;
+    days.forEach((d, k) => { const r = res[k]; if (!r) return; section = section || r.section; Object.assign(d, { locked: r.locked, saved: r.saved, can: r.can_edit });
+      r.students.forEach((s) => { if (!st.has(s.id)) st.set(s.id, { id: s.id, no: s.no, name: s.name, cells: {}, orig: {} }); const x = st.get(s.id); x.cells[d.iso] = s.status; x.orig[d.iso] = s.status; }); });
+    if (!section) { body.innerHTML = empty("calendar", "لا أيام دراسية متاحة في هذا الأسبوع", "اختر أسبوعاً آخر."); return; }
+    S = { sec, section, days, force: new Set(), students: [...st.values()].sort((a, b) => a.name.localeCompare(b.name, "ar")) }; render();
+  }
+  picker.fire();
+}
+
 // ============================== التحضير اليومي ==============================
 PAGES.attendance = () => boot("attendance.html", async (main, c) => {
   const meta = await rpc("ind_meta", { p_task: c.oversee ? "view" : "absence" });
   if (!meta.sections.length) { main.innerHTML = empty("users", "لا فصول مسندة إليك لتسجيل الغياب", "راجع منسق الغياب لإسناد فصولك."); return; }
   const qs = new URLSearchParams(location.search);
-  main.innerHTML = `<div class="card"><div id="pick"></div><div id="cls" class="mt"></div></div><div class="card mt"><div id="body">${empty("check", "اختر الفصل لعرض قائمة الطلاب", "يظهر جميع الطلاب «حاضرين»، وتحدد الغائبين فقط.")}</div></div>`;
+  if (c.isCoord && qs.get("v") === "week") return attendanceWeek(main, c, meta);
+  main.innerHTML = `${c.isCoord ? attModeTabs("day") : ""}<div class="card"><div id="pick"></div><div id="cls" class="mt"></div></div><div class="card mt"><div id="body">${empty("check", "اختر الفصل لعرض قائمة الطلاب", "يظهر جميع الطلاب «حاضرين»، وتحدد الغائبين فقط.")}</div></div>`;
   let state = null, dirty = false, cardsDay = null, cardSeq = 0;
   const AT = { none: ["x", "لم يُحضَّر"], saved: ["clock", "حُضِّر · بانتظار التثبيت"], locked: ["lock", "مثبت"] };
   const loadCards = async (day) => {

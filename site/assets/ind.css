@@ -104,3 +104,39 @@
 .at-c .stb .ico{width:14px;height:14px}
 .lg.at-none i{background:#7d8996}.lg.at-saved i{background:#2f74c0}.lg.at-locked i{background:#1f9d63}
 .lgd .lg:not(button){cursor:default}
+
+/* ===== التحضير الأسبوعي ===== */
+.modetabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.modetabs a{display:inline-flex;align-items:center;gap:6px;min-height:44px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:8px 18px;font-weight:700;color:var(--ink2);text-decoration:none}
+.modetabs a .ico{width:16px;height:16px}
+.modetabs a.on{background:var(--grad);color:#fff;border-color:transparent}
+.wkbar{display:flex;gap:12px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.wkbar label{margin:0 0 4px;font-size:.84rem;display:block}
+table.wk{border-collapse:separate;border-spacing:0;width:100%;min-width:820px}
+.wk th,.wk td{border-bottom:1px solid var(--line);padding:6px;text-align:center;vertical-align:middle}
+.wk thead th{background:var(--soft);vertical-align:top}
+.wk .wk-d{min-width:132px}
+.wk .wk-d b{display:block;font-size:1rem}
+.wk .wk-d .wk-dt{display:block;font-weight:700;color:var(--ink2);margin-top:2px}
+.wk .wk-d small{display:block;color:var(--muted);margin-bottom:6px}
+.wk .wk-d .badge{display:inline-block;margin:2px 0 6px}
+.wk .wk-d .btn{display:block;width:100%;margin-top:4px}
+.wk .wk-d.off{opacity:.6}
+.wk .wk-s{text-align:start;min-width:190px;position:sticky;inset-inline-start:0;background:var(--surface);z-index:1;display:table-cell}
+.wk thead .wk-s{background:var(--soft);z-index:3}
+.wk tbody .wk-s{display:table-cell}
+.wk .wk-s .n{display:inline-block;min-width:28px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wk .wk-s b{font-weight:700}.wk .wk-s small{display:block;color:var(--muted);margin-inline-start:28px}
+.wk .wk-x{color:var(--muted)}
+.wk .wk-tt{min-width:84px;font-weight:700}
+.wk tfoot th,.wk tfoot td{background:var(--soft);border-bottom:0}
+.wk .wk-f span{display:block;font-size:.8rem;font-weight:700}
+.wk .wk-f .e{color:var(--st-exc-f)}.wk .wk-f .u{color:var(--st-unx-f)}
+.wk tr[hidden]{display:none}
+.wk-c{width:100%;min-width:84px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--st-present);color:var(--c4f);font:inherit;font-weight:700;font-size:.86rem;cursor:pointer;transition:background .15s,border-color .15s}
+.wk-c[data-st="absent_excused"]{background:var(--st-exc);border-color:var(--st-exc-b);color:var(--st-exc-f)}
+.wk-c[data-st="absent_unexcused"]{background:var(--st-unx);border-color:var(--st-unx-b);color:var(--st-unx-f)}
+.wk-c:disabled{cursor:not-allowed;opacity:.7}
+.wk-c:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+#werr .note.bad ul{margin:6px 0 0;padding-inline-start:20px}
+.note.bad{background:var(--c5b);color:var(--c5f)}
