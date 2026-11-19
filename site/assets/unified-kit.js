@@ -324,8 +324,8 @@ main h3.sec{margin-top:26px;padding-inline-start:12px;border-inline-start:5px so
     hyd(); if (!PK._mo) { let t = 0; PK._mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { hyd(); PK.year(PK._sb).then((y) => y && document.querySelectorAll("[data-pk-year][hidden]").forEach((e) => { e.textContent = "العام الدراسي " + y; e.hidden = false; })); }, 50); }); PK._mo.observe(document.body, { childList: true, subtree: true }); }
   };
   const dateBlock = () => { const d = new Date(), f = (loc, opt) => d.toLocaleDateString(loc, Object.assign({ timeZone: "Asia/Riyadh" }, opt));
-    const h = f("ar-SA-u-ca-islamic-umalqura-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" }), g = f("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric" });
-    return `<div class="pk-wc-d"><span class="pk-wc-y" data-pk-year hidden></span><b>${esc(h)}</b><span>${esc(g)} م</span></div>`; };
+    const g = f("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return `<div class="pk-wc-d"><span class="pk-wc-y" data-pk-year hidden></span><b>${esc(g)} م</b></div>`; };
   PK.year = function (sb) { if (!PK._yp) PK._yp = Promise.resolve(sb.rpc("portal_current_year")).then((r) => (r && r.data) || null).catch(() => null); return PK._yp; };
   PK.welcomeHTML = (o) => `<section class="pk-wc" aria-label="بطاقة الترحيب"><span class="pk-wc-av" data-pk-av>${DEF_AV}</span><div class="pk-wc-t"><h2>مرحباً بك، ${esc(shortName(o.name))}</h2>${o.role ? `<p>${esc(o.role)}</p>` : ""}</div>${dateBlock()}</section>`;
   // host: عنصر أو محدد؛ mode: before | prepend | replace (الافتراضي prepend داخل host)

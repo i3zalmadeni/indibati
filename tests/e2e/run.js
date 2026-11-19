@@ -8,7 +8,7 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
 (async () => {
   const br = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox"] });
   const open = async (user, w = 1180, h = 900) => {
-    const ctx = await br.newContext({ viewport: { width: w, height: h }, locale: "ar-SA", timezoneId: "Asia/Riyadh" });
+    const ctx = await br.newContext({ viewport: { width: w, height: h }, locale: "ar-SA-u-ca-gregory-nu-latn", timezoneId: "Asia/Riyadh" });
     await ctx.route(/cdn\.jsdelivr\.net/, (r) => r.fulfill({ contentType: "text/javascript", body: MOCK }));
     await ctx.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
     await ctx.route(/supabase\.co\/functions\/v1\/(.*)/, async (r) => { const u = r.request().url().split("/functions/v1/")[1]; r.fulfill({ response: await r.fetch({ url: BASE + "/fn/" + u }) }); });
