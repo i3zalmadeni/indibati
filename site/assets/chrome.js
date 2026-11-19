@@ -91,15 +91,19 @@ const UB_CSS = `.ub{display:flex;align-items:center;gap:10px;flex:none}
 .ub-empty{margin:18px 14px;text-align:center;color:var(--muted,#71859a);font-size:.9rem}
 .ub a.ub-all{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-top:1px solid var(--line,#e2edf1);font-weight:800;font-size:.88rem;color:var(--brand2,#0c6f82);text-decoration:none;background:var(--surface,#fff);border-radius:0;white-space:nowrap}
 .ub a.ub-all:hover{background:var(--soft,#eef8fa)}
-.ub a.ub-u{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#fff;min-height:44px;padding:0;padding-inline-start:10px;border-radius:0;border-inline-start:1px solid rgba(255,255,255,.18);background:none;font-weight:400}.ub a.ub-u:hover{background:none}.ub a.ub-u::after{display:none}
+.ub .ub-u{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#fff;min-height:44px;padding:0;padding-inline-start:10px;border:0;border-radius:0;border-inline-start:1px solid rgba(255,255,255,.18);background:none;font:inherit;font-weight:400;cursor:pointer;box-shadow:none;transform:none}.ub .ub-u:hover{background:none}.ub .ub-u::after{display:none}.ub .ub-u:focus-visible{outline:3px solid #f0b34a;outline-offset:2px}
+.ub-cv{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none;opacity:.8;transition:transform .2s}.ub-u[aria-expanded=true] .ub-cv{transform:rotate(180deg)}
+.ub-p.ub-um{width:min(250px,calc(100vw - 24px));padding:6px;gap:2px}
+.ub a.ub-mi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:0;background:none;color:var(--ink,#0d2b45);text-decoration:none;font-weight:700;font-size:.9rem;white-space:normal;min-height:44px}.ub a.ub-mi::after{display:none}.ub a.ub-mi:hover{background:var(--soft,#eef8fa);color:var(--ink,#0d2b45)}.ub a.ub-mi:focus-visible{outline:3px solid #f0b34a;outline-offset:-2px}
+.ub a.ub-mi .ub-ic{width:32px;height:32px}.ub-mh{padding:8px 12px 6px;font-size:.78rem;color:var(--muted,#71859a);border-bottom:1px solid var(--line,#e2edf1);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ub-av{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:.95rem;border:2px solid rgba(255,255,255,.6)}
 .ub-av img{width:100%;height:100%;object-fit:cover;display:block}
-.ub-nm{color:#e3f0f5;font-size:.86rem;font-weight:700;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ub a.ub-u:hover .ub-nm{text-decoration:underline}
+.ub-nm{color:#e3f0f5;font-size:.86rem;font-weight:700;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ub .ub-u:hover .ub-nm{text-decoration:underline}
 .ub-out{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);color:#fff;font:inherit;font-size:.86rem;font-weight:700;cursor:pointer;text-decoration:none;transition:background .2s}
 .ub-out .ub-i{width:18px;height:18px}
 .ub #out.ub-out,header .ub #out.ub-out{color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28);box-shadow:none;transform:none}
 .ub #out.ub-out:hover,header .ub #out.ub-out:hover{background:#c23646;border-color:#c23646;color:#fff}
-@media (max-width:700px){.ub-nm{display:none}.ub a.ub-u{padding-inline-start:6px}}
+@media (max-width:700px){.ub-nm,.ub-cv{display:none}.ub .ub-u{padding-inline-start:6px}}
 @media (max-width:420px){.ub-sg{grid-template-columns:1fr}}
 @media (max-width:520px){.ub{gap:6px}.ub-out span{display:none}.ub-out{padding:0 10px}}
 @media (max-width:900px){.ub-p{position:fixed;inset-inline:12px;inset-block-start:auto;margin-top:10px;width:auto;max-width:520px;margin-inline:auto;max-height:70vh}}
@@ -151,13 +155,18 @@ const ubSysHTML = () => { const cur = location.pathname.split("/").filter(Boolea
   return UB_SYS.map(([p, n, i, d]) => { const on = p.split("/")[0] === cur;
     return `<a class="ub-sys${on ? " on" : ""}" href="/${p}"${on ? ' aria-current="page"' : ""}><span class="ub-ic">${ubIco(i)}</span><span class="ub-tx"><b>${ubEsc(n)}</b><small>${on ? "أنت هنا" : ubEsc(d)}</small></span></a>`; }).join(""); };
 // HTML الشريط. home: رابط صفحة المستخدم (ملفه أو حسابه) عند النقر على صورته واسمه
-function ubBarHTML(name, home) {
+const UB_PROF = "/teachers-community/#/home/profile";
+const UB_PW = "/digital-core/password.html";
+function ubBarHTML(name, home, pwUrl, profUrl) {
   return `<div class="ub"><div class="ub-n"><button type="button" class="ub-bell ub-swb" id="ubS" aria-label="التنقل بين لوحات تحكم الأنظمة" title="أنظمة النواة الرقمية" aria-expanded="false" aria-haspopup="true" aria-controls="ubSP">${ubIco("apps")}</button>
     <div class="ub-p ub-sp" id="ubSP" role="dialog" aria-label="أنظمة النواة الرقمية" hidden><div class="ub-ph"><b>انتقل إلى لوحة تحكم نظام آخر</b></div><div class="ub-sg">${ubSysHTML()}</div></div></div>
     <a class="ub-bell ub-lb${location.pathname.indexOf("lbeed.html") > -1 ? " on" : ""}" id="ubLb" href="/digital-core/lbeed.html" data-tip="يحدث في لبيد" aria-label="يحدث في لبيد" title="يحدث في لبيد"${location.pathname.indexOf("lbeed.html") > -1 ? ' aria-current="page"' : ""}><svg class="ub-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg><span class="ub-lbd" aria-hidden="true"></span></a>
     <div class="ub-n"><button type="button" class="ub-bell" id="ubB" aria-label="الإشعارات" aria-expanded="false" aria-haspopup="true" aria-controls="ubP">${ubIco("bell")}<span class="ub-c" id="ubC" hidden></span></button>
     <div class="ub-p" id="ubP" role="dialog" aria-label="الإشعارات" hidden><div class="ub-ph"><b>الإشعارات</b><button type="button" id="ubR">تحديد الكل كمقروء</button></div><div class="ub-l" id="ubL"><p class="ub-empty">جارٍ التحميل…</p></div><a class="ub-all" id="ubA" href="#" hidden>مشاهدة الكل</a></div></div>
-    <a class="ub-u" href="${ubEsc(home || "#")}" title="${ubEsc(name)}"><span class="ub-av" id="ubAv" aria-hidden="true">${ubEsc(String(name || "").trim().charAt(0))}</span><span class="ub-nm">${ubEsc(ubShortName(name))}</span></a>
+    <div class="ub-n"><button type="button" class="ub-u" id="ubU" title="${ubEsc(name)}" aria-label="قائمة حسابي" aria-expanded="false" aria-haspopup="true" aria-controls="ubUP"><span class="ub-av" id="ubAv" aria-hidden="true">${ubEsc(String(name || "").trim().charAt(0))}</span><span class="ub-nm">${ubEsc(ubShortName(name))}</span><svg class="ub-cv" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="ub-p ub-um" id="ubUP" role="menu" aria-label="حسابي" hidden><div class="ub-mh" id="ubUN">${ubEsc(name)}</div>
+      <a class="ub-mi" role="menuitem" id="ubMpw" href="${ubEsc(pwUrl || UB_PW)}"><span class="ub-ic">${ubIco("lock")}</span><span>تغيير كلمة المرور</span></a>
+      <a class="ub-mi" role="menuitem" id="ubMpf" href="${ubEsc(profUrl || UB_PROF)}"><span class="ub-ic">${ubIco("user")}</span><span>تعديل الملف المهني</span></a></div></div>
     <button type="button" class="ub-out" id="out">${ubIco("logout")}<span>خروج</span></button></div>`;
 }
 // تشغيل الشريط بعد إدراجه (يجوز استدعاؤه بعد كل إعادة رسم للشريط). o: { key, uid, load: async () => [عناصر], allUrl, markAll: async () => {} }
@@ -189,7 +198,7 @@ async function ubLoad() {
   UB.N.sort((a, b) => (ubUnread(b) - ubUnread(a)) || (tv(b) - tv(a))); UB.at = Date.now(); UB.loaded = true; ubPaint();
 }
 async function ubMarkAll() { UB.N.forEach((x) => UB.seen.add(String(x.id))); ubSave(); if (UB.o && UB.o.markAll) { try { await UB.o.markAll(); } catch (_) {} } UB.N = UB.N.map((x) => (x.read != null ? { ...x, read: true } : x)); ubPaint(); }
-const ubClose = () => { [["ubP", "ubB"], ["ubSP", "ubS"]].forEach(([p, b]) => { const P = document.getElementById(p), B = document.getElementById(b); if (P) P.hidden = true; if (B) B.setAttribute("aria-expanded", "false"); }); };
+const ubClose = () => { [["ubP", "ubB"], ["ubSP", "ubS"], ["ubUP", "ubU"]].forEach(([p, b]) => { const P = document.getElementById(p), B = document.getElementById(b); if (P) P.hidden = true; if (B) B.setAttribute("aria-expanded", "false"); }); };
 function ubMount(o) {
   const $u = (s) => document.getElementById(s), B = $u("ubB"), P = $u("ubP"), A = $u("ubA");
   const first = !UB.o || UB.o.key !== o.key || UB.o.uid !== o.uid;
@@ -209,12 +218,15 @@ function ubMount(o) {
   const SW = $u("ubS"), SP = $u("ubSP");
   if (SW && SP) { SW.onclick = (e) => { e.stopPropagation(); const open = SP.hidden; ubClose(); SP.hidden = !open; SW.setAttribute("aria-expanded", String(open)); };
     SP.onclick = (e) => e.stopPropagation(); }
+  const UU = $u("ubU"), UP = $u("ubUP");
+  if (UU && UP) { UU.onclick = (e) => { e.stopPropagation(); const open = UP.hidden; ubClose(); UP.hidden = !open; UU.setAttribute("aria-expanded", String(open)); };
+    UP.onclick = (e) => { e.stopPropagation(); if (e.target.closest("a")) ubClose(); }; }
   B.onclick = (e) => { e.stopPropagation(); const open = P.hidden; if (open) ubClose(); P.hidden = !open; B.setAttribute("aria-expanded", String(open)); if (open && Date.now() - UB.at > 60000) ubLoad(); };
   $u("ubR").onclick = (e) => { e.stopPropagation(); ubMarkAll(); };
   P.onclick = (e) => { e.stopPropagation(); const a = e.target.closest("[data-ubi]"); if (a) { const x = UB.N[+a.dataset.ubi]; if (x) { UB.seen.add(String(x.id)); ubSave(); } ubClose(); } else if (e.target.closest("#ubA")) ubClose(); };
   if (!window.__ubDoc) { window.__ubDoc = true;
     document.addEventListener("click", ubClose);
-    document.addEventListener("keydown", (e) => { if (e.key !== "Escape") return; const op = [["ubP", "ubB"], ["ubSP", "ubS"]].find(([p]) => { const x = document.getElementById(p); return x && !x.hidden; });
+    document.addEventListener("keydown", (e) => { if (e.key !== "Escape") return; const op = [["ubP", "ubB"], ["ubSP", "ubS"], ["ubUP", "ubU"]].find(([p]) => { const x = document.getElementById(p); return x && !x.hidden; });
       if (op) { ubClose(); const b = document.getElementById(op[1]); if (b) b.focus(); } }); }
   if (first || !UB.loaded) ubLoad(); else ubPaint();
 }
@@ -255,8 +267,11 @@ function ubPage(host, sys) {
   draw(); if (!UB.loaded || Date.now() - UB.at > 30000) ubLoad();
 }
 // تحديث الاسم بعد الدخول (للأنظمة التي تبني الشريط قبل معرفة المستخدم)
-function ubSetName(name, home) {
-  const u = document.querySelector(".ub-u"); if (!u) return; u.title = name || ""; if (home) u.href = home;
+function ubSetName(name, home, pwUrl, profUrl) {
+  const u = document.getElementById("ubU") || document.querySelector(".ub-u"); if (!u) return; u.title = name || "";
+  const pw = document.getElementById("ubMpw"); if (pw && pwUrl) pw.href = pwUrl;
+  const pf = document.getElementById("ubMpf"); if (pf && profUrl) pf.href = profUrl;
+  const nn = document.getElementById("ubUN"); if (nn) nn.textContent = name || "";
   const n = u.querySelector(".ub-nm"); if (n) n.textContent = ubShortName(name);
   const av = document.getElementById("ubAv"); if (av && !av.querySelector("img")) av.textContent = String(name || "").trim().charAt(0);
 }

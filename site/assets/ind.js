@@ -71,10 +71,14 @@ async function rpc(fn, args) {
 }
 
 function toast(msg, bad) { const d = document.createElement("div"); d.className = "toast" + (bad ? " bad" : ""); d.setAttribute("role", "status"); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 4000); }
+const MX_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+// زر إغلاق (×) في أعلى كل نافذة منبثقة، مع بقاء أزرار الإغلاق السفلية؛ يُعاد إدراجه إذا أُعيد رسم محتوى النافذة
+function modalX(md, close) { const sync = () => { const cur = md.querySelector(":scope>.mx"), f = [...md.children].find((c) => !c.classList.contains("mx")), has = f && (f.hasAttribute("data-x") || f.querySelector("[data-x]")); if (has) { if (cur) cur.remove(); return; } if (cur) return; const b = document.createElement("button"); b.type = "button"; b.className = "mx"; b.setAttribute("aria-label", "إغلاق"); b.innerHTML = MX_SVG; b.onclick = close; md.prepend(b); }; sync(); new MutationObserver(sync).observe(md, { childList: true }); }
 function modal(html, wide) {
   const ov = document.createElement("div"); ov.className = "ov"; ov.innerHTML = `<div class="md" role="dialog" aria-modal="true" ${wide ? 'style="max-width:860px"' : ""}>${html}</div>`;
   const close = () => ov.remove(); ov.addEventListener("mousedown", (e) => { if (e.target === ov) close(); });
   document.addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", k); } });
+  modalX(ov.firstChild, close);
   document.body.appendChild(ov); return { el: ov.firstChild, close };
 }
 // نافذة تأكيد للعمليات الحساسة، مع حقل سبب اختياري أو إلزامي
