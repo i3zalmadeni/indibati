@@ -199,6 +199,9 @@ async function boot(page, render, o = {}) {
   const ctx = { who, uid: session.user.id, isAdmin: who.is_admin, isCoord: who.is_coord, isAffairs: who.is_affairs, isPortal: who.is_portal_admin,
     absence: who.is_coord || tasks.has("absence"), lateness: who.is_coord || tasks.has("lateness"), oversee: who.is_coord || who.is_affairs,
     role: who.is_coord ? (who.is_admin ? "مدير النواة الرقمية" : "منسق الغياب") : who.is_affairs ? "شؤون الطلاب" : who.is_portal_admin ? "مدير البوابة" : tasks.size ? "مدخل بيانات" : "منسوب" };
+  // تبديل الدور: منسق الغياب يختار بين لوحة المنسق ولوحة المعلم (التحضير والتأخر للفصول المسندة له فقط)
+  ctx.canSwitch = !!who.is_coord; ctx.view = window.RoleSwitch ? RoleSwitch.view("indibati", ctx.uid, ctx.canSwitch) : "coord";
+  if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoord: false, isPortal: false, isAffairs: false, oversee: false, absence: tasks.has("absence"), lateness: tasks.has("lateness"), role: "معلم" });
   window.__ind = ctx;
   const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
   if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
@@ -231,6 +234,7 @@ async function boot(page, render, o = {}) {
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: ما ينتظر العمل اليوم (التحضير، التثبيت، الأعذار) بحسب صلاحية المستخدم، و«مشاهدة الكل» مركز الإشعارات لمن يصل إليه
+  if (window.RoleSwitch) RoleSwitch.mount({ sys: "indibati", uid: ctx.uid, can: ctx.canSwitch, view: ctx.view, home: { coord: "dashboard.html", teacher: "dashboard.html" }, teacherDesc: "التحضير والتأخر للفصول المسندة لي", coordDesc: "المتابعة والأعذار والتقارير والإدارة" });
   ubMount({ key: "ind", uid: ctx.uid, allUrl: "inbox.html", load: async () => {
     const n = await rpc("ind_nav_counts"); if (!n || n.error || n.weekend) return [];
     const N = [], day = n.day, cnt = (v, one, two, few, many) => (v === 1 ? one : v === 2 ? two : v <= 10 ? v + " " + few : v + " " + many);
