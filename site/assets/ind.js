@@ -1,7 +1,13 @@
 /* المنطق المشترك لنظام «انضباطي». الهوية من core.css وchrome.js (هوية النواة الرقمية).
    كل كتابة وقراءة تشغيلية عبر دوال ind_* في قاعدة النواة، وتتحقق من الدور والإسناد والتثبيت على الخادم.
    إخفاء عناصر الواجهة هنا للتيسير فقط ولا يُعتمد عليه في الحماية. */
-const sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+// لوحة المعلم: كل طلب يحمل علامة «ind-view=teacher» في x-client-info، فيعامله الخادم معاملة المعلم (0308).
+// العلامة تُنقص الصلاحيات فقط، وتُضاف بعد معرفة الدور الحقيقي (ind_whoami يُطلب دونها).
+const sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey, { global: { fetch: (input, init = {}) => {
+  if (window.__indView !== "teacher") return fetch(input, init);
+  const h = new Headers(init.headers || {}); h.set("x-client-info", (h.get("x-client-info") || "supabase-js-web") + " ind-view=teacher");
+  return fetch(input, { ...init, headers: h });
+} } });
 async function doLogout(to) {
   try { await Promise.race([sb.auth.signOut({ scope: "local" }), new Promise((r) => setTimeout(r, 2500))]); } catch (_) {}
   try { Object.keys(localStorage).filter((k) => /^sb-.*-auth-token/.test(k)).forEach((k) => localStorage.removeItem(k)); sessionStorage.clear(); } catch (_) {}
@@ -160,6 +166,7 @@ function exportCSV(name, headers, rows) {
 // r: all | absence | lateness | coord | admin(portal) | oversee
 const NAV = [
   ["dashboard.html", "مكتبي الإلكتروني", "grid", "ملخص اليوم ومهامك", "all"],
+  ["classes.html", "فصولي", "users", "فصولي ومواد التدريس المسندة لي، وغياب طلابها وتأخرهم", "mine"],
   ["attendance.html", "التحضير", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence"],
   ["locks.html", "التثبيت", "lock", "حالة التحضير والتثبيت لكل فصل وتاريخ", "absence"],
   ["messages.html", "رسائل الغياب", "send", "إشعار أولياء أمور الغائبين برسالة فردية فيها رابط آمن لتقديم العذر", "coord"],
@@ -201,16 +208,19 @@ async function boot(page, render, o = {}) {
     role: who.is_coord ? (who.is_admin ? "مدير النواة الرقمية" : "منسق الغياب") : who.is_affairs ? "شؤون الطلاب" : who.is_portal_admin ? "مدير البوابة" : tasks.size ? "مدخل بيانات" : "منسوب" };
   // تبديل الدور: منسق الغياب يختار بين لوحة المنسق ولوحة المعلم (التحضير والتأخر للفصول المسندة له فقط)
   ctx.canSwitch = !!who.is_coord; ctx.view = window.RoleSwitch ? RoleSwitch.view("indibati", ctx.uid, ctx.canSwitch) : "coord";
+  if (ctx.canSwitch && ctx.view === "teacher") window.__indView = "teacher";
   if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoord: false, isPortal: false, isAffairs: false, oversee: false, absence: tasks.has("absence"), lateness: tasks.has("lateness"), role: "معلم" });
   window.__ind = ctx;
-  const ok = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
-  if (o.role && !ok(o.role)) { location.replace("dashboard.html"); return; }
+  // «فصولي» للمعلم (وفي لوحة المعلم)، والتثبيت للمنسق وحده (0307) فلا يظهر في لوحة المعلم
+  const ok = (r, h) => (r === "mine" ? !ctx.oversee : h === "locks.html" && ctx.canSwitch && ctx.view === "teacher" ? false : ok0(r));
+  const ok0 = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
+  if ((o.role && !ok(o.role, page)) || (page === "locks.html" && !ok("absence", page))) { location.replace("dashboard.html"); return; }
   const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "messages.html": "رسائل الغياب لأولياء الأمور", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات", "perms.html": "الصلاحيات", "settings.html": "إدارة البوابة" };
   const cur0 = NAV.find((n) => n[0] === page), cur = cur0 ? [cur0[0], FULL[page] || cur0[1], cur0[2], cur0[3]] : [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
-     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${NAV.filter((n) => ok(n[4])).map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
+     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${NAV.filter((n) => ok(n[4], n[0])).map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
      <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime">${esc(fmtHijri(todayISO()))}</span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>

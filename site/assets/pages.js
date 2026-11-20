@@ -49,7 +49,12 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
     </div>`;
     var ABX = ab;
   }
-  if (!html) html = empty("inbox", "لا مهام مسندة إليك في انضباطي", "يُسند منسق الغياب فصول تسجيل الغياب أو التأخر من «إدارة التكليفات». راجعه إن كنت مكلفاً.");
+  // لوحة المعلم: فصولي من إسناد التدريس في النواة، وحالة طلابها اليوم
+  if (!c.oversee) {
+    const cl = await rpc("ind_teacher_classes", { p_day: day }).catch(() => []);
+    if (cl.length) html = `<h2 class="sec">${ico("users")} فصولي ${notToday ? "في آخر يوم دراسي" : "اليوم"} <small class="sub">${esc(fmtBoth(day))}</small></h2>${classesSummary(cl)}<div class="acts mt"><a class="btn sm sec" href="classes.html">تفاصيل فصولي</a></div>` + html;
+  }
+  if (!html) html = empty("inbox", "لا فصول ولا مهام مسندة إليك في انضباطي", "يُسند منسق الغياب فصول تسجيل الغياب أو التأخر من «إدارة التكليفات». راجعه إن كنت مكلفاً.");
   main.innerHTML = html;
   if ($("#abt")) {
     const SG = Object.fromEntries(meta.sections.map((x) => [x.id, x.grade]));
@@ -505,3 +510,37 @@ PAGES.audit = () => boot("audit.html", async (main) => {
   const load = async (more) => { const r = await rpc("ind_audit_list", { p_limit: 100, p_entity: $("#af").value || null, p_before: more && rows.length ? rows[rows.length - 1].id : null }); rows = more ? rows.concat(r) : r; $("#more").hidden = r.length < 100; paint(); };
   $("#af").onchange = () => load(false); $("#more").onclick = () => load(true); await load(false);
 }, { role: "admin" });
+
+
+// ============================== فصولي (لوحة المعلم) ==============================
+// فصول المعلم ومواده من إسناد التدريس في النواة الرقمية؛ اطلاع فقط على غياب طلابها وتأخرهم.
+function classesSummary(cl) {
+  const st = (x) => (x.locked ? '<span class="badge ok">مثبت</span>' : x.saved ? '<span class="badge warn">محفوظ غير مثبت</span>' : '<span class="badge">لم يُحضَّر بعد</span>');
+  return `<div class="kgrid">${cl.map((x) => `<a class="kpi k${x.absent.length ? 5 : 4}" href="classes.html#c-${x.section_id}" style="text-decoration:none"><div class="ic">${ico("users")}</div><div><b>${esc(x.label)}</b><span>${x.absent.length} غائب · ${x.late.length} متأخر · ${st(x)}</span></div></a>`).join("")}</div>`;
+}
+PAGES.classes = () => boot("classes.html", async (main, c) => {
+  main.innerHTML = loading();
+  const meta = await rpc("ind_meta", { p_task: "view" }), qd = new URLSearchParams(location.search).get("d"), day = qd || lastSchoolDay(meta);
+  const cl = await rpc("ind_teacher_classes", { p_day: day });
+  if (!cl.length) { main.innerHTML = empty("users", "لا توجد فصول مسندة لك في النواة الرقمية", "تظهر هنا الفصول والمواد التي تدرّسها بعد إسنادها لك في «إسناد التدريس» بالنواة الرقمية."); return; }
+  const tot = (k) => cl.reduce((a, x) => a + x[k].length, 0), stu = cl.reduce((a, x) => a + (+x.students || 0), 0);
+  const st = (x) => (x.locked ? '<span class="badge ok">مثبت</span>' : x.saved ? '<span class="badge warn">محفوظ غير مثبت</span>' : '<span class="badge">لم يُحضَّر بعد</span>');
+  main.innerHTML = `<div class="pickbar"><div><label for="cd">اليوم</label><input type="date" id="cd" value="${esc(day)}" max="${esc(meta.today)}"></div><p class="sub" style="margin:0">${esc(fmtBoth(day))}</p></div>
+    <div class="kgrid mt">
+      <div class="kpi k0"><div class="ic">${ico("users")}</div><div><b class="mono">${cl.length}</b><span>فصولي</span></div></div>
+      <div class="kpi k1"><div class="ic">${ico("users")}</div><div><b class="mono">${stu}</b><span>طلابي</span></div></div>
+      <div class="kpi k5"><div class="ic">${ico("x")}</div><div><b class="mono">${tot("absent")}</b><span>غائبون</span></div></div>
+      <div class="kpi k3"><div class="ic">${ico("clock")}</div><div><b class="mono">${tot("late")}</b><span>متأخرون</span></div></div>
+    </div>
+    ${cl.map((x) => `<section class="card mt" id="c-${x.section_id}">
+      <div class="row2"><h3 class="sec" style="margin:0">${ico("users")} ${esc(x.label)}</h3><span>${st(x)}</span></div>
+      <p class="sub" style="margin:4px 0 10px">${(x.subjects || []).map(esc).join("، ") || "—"} · ${x.students} طالباً</p>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))">
+        <div><h4 class="sec" style="margin:0 0 6px">الغائبون (${x.absent.length})</h4>${x.absent.length ? `<div class="tw"><table class="tbl"><tbody>${x.absent.map((a) => `<tr><td>${esc(a.name)}</td><td><span class="badge ${a.status === "absent_unexcused" ? "bad" : "warn"}">${STATUS[a.status] || ""}</span></td></tr>`).join("")}</tbody></table></div>` : `<p class="sub">${x.saved ? "لا غائبين." : "لم يُسجَّل الغياب بعد."}</p>`}</div>
+        <div><h4 class="sec" style="margin:0 0 6px">المتأخرون (${x.late.length})</h4>${x.late.length ? `<div class="tw"><table class="tbl"><tbody>${x.late.map((a) => `<tr><td>${esc(a.name)}</td><td class="mono">${a.minutes != null ? a.minutes + " د" : esc(a.time || "")}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا متأخرين.</p>'}</div>
+        <div><h4 class="sec" style="margin:0 0 6px">الأكثر غياباً هذا العام</h4>${x.top.length ? `<div class="tw"><table class="tbl"><thead><tr><th>الطالب</th><th>أيام</th><th>بدون عذر</th></tr></thead><tbody>${x.top.map((a) => `<tr><td>${esc(a.name)}</td><td class="mono">${a.days}</td><td class="mono">${a.unexcused}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا طالب تجاوز يومين.</p>'}</div>
+      </div></section>`).join("")}
+    <p class="sub mt">اطلاع فقط. تسجيل الغياب والتأخر لمن كلّفه منسق الغياب، والأعذار والإجراءات من صلاحيات المنسق وشؤون الطلاب.</p>`;
+  $("#cd").onchange = (e) => { const u = new URLSearchParams(location.search); u.set("d", e.target.value); location.search = u; };
+  if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView({ block: "start" }); }
+}, { title: "فصولي", desc: "فصولي ومواد التدريس المسندة لي، وغياب طلابها وتأخرهم" });
