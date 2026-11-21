@@ -155,3 +155,24 @@ main.solo{padding-top:24px}
 @media print{.sbar,.shd{display:none!important}}
 .sbar .subnav{justify-content:flex-start;gap:2px}
 .sbar .subnav a{padding:11px 10px;gap:6px}
+
+/* النمط الداكن: ما كُتب بألوان فاتحة ثابتة في core.css وصفحات الموقع ولا تغطيه رموز النمط.
+   في ind.css لا في core.css، لأن core.css نسخة مطابقة من هوية النواة الرقمية. */
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) header{background:linear-gradient(to left,#1b2a2c 0%,#152833 22%,#11242f 55%,#0f2836 100%)}
+  html:not([data-theme="light"]) body.pubsite{background:radial-gradient(1200px 500px at 85% -5%,#12343c 0,transparent 60%),radial-gradient(900px 420px at 0% 30%,#211f16 0,transparent 55%),var(--bg)}
+  html:not([data-theme="light"]) .h3act .btn:not(.ghost){background:#fff;color:#0c6f82}
+  html:not([data-theme="light"]) .lgbody .login{background:linear-gradient(160deg,var(--c0b),var(--surface) 70%)}
+  html:not([data-theme="light"]) .win{background:linear-gradient(180deg,#183441,#132b37)}
+  html:not([data-theme="light"]) .wrow .tr{background:var(--line)}
+  html:not([data-theme="light"]) .qwin{background:#15303c}
+  html:not([data-theme="light"]) .qgrid i{background:#24404d}
+  html:not([data-theme="light"]) .qgrid i.y{--to:#3a5463}
+  html:not([data-theme="light"]) .qchip{background:#1b3542;color:var(--ink)}
+  html:not([data-theme="light"]) .kpi .ic{background:rgba(255,255,255,.07)}
+  html:not([data-theme="light"]) .err{color:#f2939c}
+  html:not([data-theme="light"]) .at-c.at-none{background:linear-gradient(145deg,#5b6875,#414c58)}
+  html:not([data-theme="light"]) .qgrid i{animation-name:qcellD}html:not([data-theme="light"]) .qgrid i.y{animation-name:qcellyD}
+}
+@keyframes qcellD{0%,8%{background:#3a5463}28%,40%{background:#3b82c4}58%,88%{background:var(--to)}100%{background:#3a5463}}
+@keyframes qcellyD{0%,100%{background:#3a5463}}
