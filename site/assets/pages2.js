@@ -71,11 +71,8 @@ PAGES.student = () => boot("student.html", async (main, c) => {
 }, { title: "الملف الانضباطي" });
 
 // ============================== مركز الإشعارات ==============================
-PAGES.notifications = () => boot("notifications.html", async (main, c) => {
-  const list = [["log", "سجل الرسائل", "list"]];
-  if (c.isCoord || c.isPortal) list.push(["templates", "القوالب", "file"], ["config", "الإعدادات والربط", "gear"]);
-  const status = await notifyStatus();
-    tabs(main, list, async (k, body) => {
+// سجل الرسائل في «الحضور اليومي»، والقوالب والربط في «إدارة البوابة ← رسائل أولياء الأمور»
+async function notifTab(k, body, c, status) {
     const banner = status && status.configured ? "" : `<p class="note">${ico("info")} لم يُربط WhatsApp Business بعد. الرسائل تُحفظ في الطابور بحالة «بانتظار الإرسال» ولا يُدّعى إرسالها، وتُرسل فور الربط.</p>`;
     if (k === "log") {
       body.innerHTML = `${banner}<div class="card"><div class="pickbar"><div><label for="ls">الحالة</label><select id="ls"><option value="">الكل</option>${Object.entries(NST).map(([k2, v]) => `<option value="${k2}">${v[0]}</option>`).join("")}</select></div>
@@ -107,7 +104,7 @@ PAGES.notifications = () => boot("notifications.html", async (main, c) => {
           <label for="tp">ترتيب المتغيرات في القالب (مفصولة بفاصلة)</label><input id="tp" dir="ltr" value="${esc(t.wa_params.join(","))}"><label class="chk"><input type="checkbox" id="ta" ${t.is_active ? "checked" : ""}>مفعّل</label>
           <p class="err" id="te"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`, true);
         $("#no", md.el).onclick = md.close;
-        $("#ok", md.el).onclick = async () => { try { await rpc("ind_template_save", { p_code: t.code, p_body: $("#tb", md.el).value, p_wa_template: $("#tw", md.el).value, p_wa_lang: $("#tl", md.el).value, p_wa_params: $("#tp", md.el).value.split(",").map((x) => x.trim()).filter(Boolean), p_active: $("#ta", md.el).checked }); md.close(); toast("حُفظ القالب"); $$("[data-t=templates]")[0].click(); } catch (e) { $("#te", md.el).textContent = mapErr(e); } }; }));
+        $("#ok", md.el).onclick = async () => { try { await rpc("ind_template_save", { p_code: t.code, p_body: $("#tb", md.el).value, p_wa_template: $("#tw", md.el).value, p_wa_lang: $("#tl", md.el).value, p_wa_params: $("#tp", md.el).value.split(",").map((x) => x.trim()).filter(Boolean), p_active: $("#ta", md.el).checked }); md.close(); toast("حُفظ القالب"); (document.querySelector("[data-t=msgs]") || { click: () => location.reload() }).click(); } catch (e) { $("#te", md.el).textContent = mapErr(e); } }; }));
     }
     if (k === "config") {
       const meta = await rpc("ind_meta", { p_task: "view" }), cfg = await rpc("ind_settings_get");
@@ -117,7 +114,7 @@ PAGES.notifications = () => boot("notifications.html", async (main, c) => {
         <div class="card mt" id="nsCard">${loading()}</div>`;
       const L = meta.lateness;
       $("#nsCard", body).innerHTML = `<h3 class="sec" style="margin-top:0">الإشعارات الآلية</h3>
-        <label class="chk"><input type="checkbox" id="c1" ${L.notify_enabled ? "checked" : ""} disabled>إشعار فوري عند تسجيل التأخر (يُضبط من الإعدادات ← التأخر)</label>
+        <label class="chk"><input type="checkbox" id="c1" ${L.notify_enabled ? "checked" : ""} disabled>إشعار فوري عند تسجيل التأخر (يُضبط من «التأخر وأسبابه»)</label>
         <div class="fg"><div><label for="c2">إشعار تكرار التأخر بعد كل (مرة)، 0 للتعطيل</label><input type="number" id="c2" min="0" max="50"></div><div><label for="c3">خلال آخر (يوماً)</label><input type="number" id="c3" min="1" max="200"></div></div>
         <label class="chk"><input type="checkbox" id="c4">إرسال إشعارات الإجراءات النظامية تلقائياً عند بلوغ الحد</label>
         ${c.isAdmin || c.isPortal ? `<label for="c5">رابط بوابة ولي الأمر</label><input id="c5" dir="ltr">` : ""}
@@ -126,8 +123,10 @@ PAGES.notifications = () => boot("notifications.html", async (main, c) => {
       if (ns) { $("#c2", body).value = ns.lateness_repeat_threshold; $("#c3", body).value = ns.lateness_repeat_window_days; $("#c4", body).checked = !!ns.escalation_notify; if ($("#c5", body)) $("#c5", body).value = ns.portal_url || ""; }
       $("#sv", body).onclick = async () => { try { await rpc("ind_set_notification_settings", { p: { lateness_repeat_threshold: +$("#c2", body).value, lateness_repeat_window_days: +$("#c3", body).value, escalation_notify: $("#c4", body).checked, portal_url: $("#c5", body)?.value } }); toast("حُفظت الإعدادات"); } catch (e) { toast(mapErr(e), true); } };
     }
-  });
-}, { role: "oversee" });
+  }
+PAGES.notifications = () => { const t = new URLSearchParams(location.search).get("tab"); if (t === "templates" || t === "config") { location.replace("settings.html?tab=msgs"); return; }
+  return boot("notifications.html", async (main, c) => { await notifTab("log", main, c, await notifyStatus());
+}, { role: "oversee" }); };
 
 // ============================== رسائل الغياب ==============================
 // قائمة غائبي اليوم في نطاق، ثم إدراج رسالة فردية لكل ولي أمر برابط آمن لتقديم العذر
@@ -187,11 +186,11 @@ PAGES.messages = () => boot("messages.html", async (main, c) => {
 }, { role: "coord" });
 
 // ============================== الإجراءات النظامية ==============================
-PAGES.escalations = () => boot("escalations.html", async (main, c) => {
-  tabs(main, [["due", "الإجراءات الصادرة", "flag"], ["rules", "الحدود والقواعد", "gear"]], async (k, body) => {
+// الإجراءات الصادرة في «متابعة الطلاب»، والحدود والقواعد في «إدارة البوابة ← الإجراءات النظامية»
+async function escTab(k, body, c) {
     if (k === "due") {
       const rows = await rpc("ind_escalations_list", { p_status: "active" }), R = await rpc("ind_escalation_rules_list");
-      body.innerHTML = `${R.some((r) => r.is_active) ? "" : `<p class="note">${ico("info")} القواعد معطّلة حتى تُراجع الحدود وطريقة احتسابها مع اللائحة السارية في وزارة التعليم. فعّلها من «الحدود والقواعد».</p>`}
+      body.innerHTML = `${R.some((r) => r.is_active) ? "" : `<p class="note">${ico("info")} القواعد معطّلة حتى تُراجع الحدود وطريقة احتسابها مع اللائحة السارية في وزارة التعليم. فعّلها من «إدارة البوابة ← الإجراءات النظامية».</p>`}
         <div class="card">${rows.length ? `<div class="tw"><table class="tbl"><thead><tr><th>الطالب</th><th>الفصل</th><th>الإجراء</th><th>أيام الغياب</th><th>تاريخ الإصدار</th><th>إشعار ولي الأمر</th><th></th></tr></thead><tbody>${rows.map((e) => `<tr>
           <td><a href="student.html?id=${e.student_id}">${esc(e.name)}</a></td><td>${esc(e.grade_name || "")} – ${esc(e.section || "")}</td><td><b>${esc(e.label)}</b></td><td class="mono">${e.days}</td><td><small>${esc(fmtT(e.created_at))}</small></td>
           <td>${e.notice ? badge(NST, e.notice) : "—"}</td><td><a class="btn sm ${e.printed_at ? "sec" : ""}" href="print.html?e=${e.id}" target="_blank">${ico("print")}${e.printed_at ? "إعادة الطباعة" : "طباعة"}</a></td></tr>`).join("")}</tbody></table></div>`
@@ -210,8 +209,10 @@ PAGES.escalations = () => boot("escalations.html", async (main, c) => {
         if (v("active").checked && !(await confirmBox("تفعيل القاعدة", "هل روجعت الحدود وطريقة احتسابها مع اللائحة السارية؟ عند التفعيل يُعاد تقييم غياب جميع الطلاب وتصدر الإجراءات المستحقة.", { okText: "نعم، فعّل" }))) return;
         try { await rpc("ind_escalation_rule_save", { p_id: tr.dataset.id, p_label: v("label").value, p_days: +v("days").value, p_mode: v("mode").value, p_pattern: v("pattern").value, p_notify: v("notify").checked, p_active: v("active").checked }); toast("حُفظت القاعدة"); } catch (e) { toast(mapErr(e), true); } }));
     }
-  });
-}, { role: "oversee" });
+  }
+PAGES.escalations = () => { if (new URLSearchParams(location.search).get("tab") === "rules") { location.replace("settings.html?tab=rules"); return; }
+  return boot("escalations.html", async (main, c) => { await escTab("due", main, c);
+}, { role: "oversee" }); };
 
 // ============================== طباعة الإشعار الرسمي ==============================
 PAGES.print = () => boot("print.html", async (main) => {

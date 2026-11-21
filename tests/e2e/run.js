@@ -16,7 +16,8 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
     const p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message + " @ " + (e.stack || "").split("\n").slice(1, 3).join(" "))); p.on("dialog", (d) => d.accept()); p.errs = errs; return p;
   };
   const shot = async (p, n) => { await p.waitForTimeout(700); return p.screenshot({ path: `${OUT}/${n}.png`, fullPage: true }); };
-  const D = "2026-11-12";
+  // آخر يوم دراسي حتى اليوم (الأحد–الخميس) بتوقيت الرياض، لأن الرئيسية تعرض آخر يوم دراسي
+  const D = (() => { let d = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }) + "T12:00:00Z"); while ([5, 6].includes(d.getUTCDay())) d = new Date(d - 864e5); return d.toISOString().slice(0, 10); })();
 
   // 1) مدخل الغياب: التحضير
   let p = await open(U(2), 1024, 1300);   // مقاس iPad تقريباً
@@ -48,7 +49,9 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   p = await open(U(1));
   await p.goto(`${BASE}/dashboard.html`); await p.waitForSelector(".kgrid"); await shot(p, "04-dashboard-coord");
   const navOrder = await p.$$eval(".dnav-in a", (a) => a.map((x) => x.getAttribute("href")));
-  ok(navOrder.slice(0, 6).join() === "dashboard.html,attendance.html,locks.html,messages.html,excuses.html,lateness.html" && navOrder.slice(-2).join() === "settings.html,notifications.html", "ترتيب القائمة: التحضير، التثبيت، رسائل الغياب، الأعذار، التأخر … الإعدادات، الإشعارات");
+  ok(navOrder.join() === "dashboard.html,attendance.html,lateness.html,excuses.html,student.html,assignments.html", "الشريط الداكن: الرئيسية، الحضور اليومي، التأخر، الأعذار، متابعة الطلاب، إدارة البوابة");
+  ok((await p.$$eval(".dnav-in a", (a) => a.map((x) => x.textContent.trim()))).join("|").startsWith("الرئيسية|الحضور اليومي"), "أسماء الأقسام");
+  ok((await p.$$eval(".sbar a", (a) => a.map((x) => x.getAttribute("href")))).join() === "dashboard.html,reports.html,audit.html", "الشريط الفرعي للرئيسية: نظرة عامة، التقارير، سجل العمليات");
   const dtxt = await p.textContent("#main");
   ok(dtxt.includes("لم يكتمل تحضيرها") && dtxt.includes("حُضّرت ولم تُثبَّت") && dtxt.includes("إحصائيات الغياب"), "الرئيسية: الفصول غير المكتملة وغير المثبتة والإحصائيات");
   ok((await p.$$("#main table tbody tr")).length >= 1 && (await p.textContent("#main table")).includes("الفصل"), "الرئيسية: قائمة الغائبين مع الفصل");
@@ -153,9 +156,9 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   await p.goto(`${BASE}/escalations.html?tab=rules`); await p.waitForSelector("[data-s]");
   const tr = p.locator("tr[data-id]").first(); await tr.locator("[data-k=days]").fill("1"); await tr.locator("[data-k=mode]").selectOption("all"); await tr.locator("[data-k=active]").check();
   await tr.locator("[data-s]").click(); await p.click(".md #ok"); await p.waitForSelector(".toast");
-  await p.goto(`${BASE}/escalations.html?tab=due`); await p.waitForSelector("#tabbody table");
-  ok((await p.$$("#tabbody tbody tr")).length >= 1, "إصدار الإجراءات تلقائياً بعد تفعيل القاعدة"); await shot(p, "20-escalations");
-  const href = await p.getAttribute("#tabbody a[href^='print.html']", "href");
+  await p.goto(`${BASE}/escalations.html?tab=due`); await p.waitForSelector("#main table");
+  ok((await p.$$("#main tbody tr")).length >= 1, "إصدار الإجراءات تلقائياً بعد تفعيل القاعدة"); await shot(p, "20-escalations");
+  const href = await p.getAttribute("#main a[href^='print.html']", "href");
   await p.goto(`${BASE}/${href}`); await p.waitForSelector(".official"); await shot(p, "21-print");
   ok(p.errs.length === 0, "لا أخطاء JavaScript (المرحلتان 5 و6): " + p.errs.join(" | "));
   // 8) المرحلة 7: التقارير ونقاط الانتظام

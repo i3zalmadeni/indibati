@@ -4,7 +4,8 @@ const PAGES = {};
 // ============================== الرئيسية ==============================
 PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
   main.innerHTML = loading();
-  const meta = await rpc("ind_meta", { p_task: "view" }), day = lastSchoolDay(meta), notToday = day !== meta.today;
+  const meta = await rpc("ind_meta", { p_task: "view" }), qd = new URLSearchParams(location.search).get("d");
+  const day = !c.oversee && /^\d{4}-\d{2}-\d{2}$/.test(qd || "") && qd <= meta.today ? qd : lastSchoolDay(meta), notToday = day !== meta.today;
   let html = "";
   // مهام مدخل البيانات
   const my = await rpc("ind_my_tasks", { p_day: day });
@@ -52,10 +53,12 @@ PAGES.dashboard = () => boot("dashboard.html", async (main, c) => {
   // لوحة المعلم: فصولي من إسناد التدريس في النواة، وحالة طلابها اليوم
   if (!c.oversee) {
     const cl = await rpc("ind_teacher_classes", { p_day: day }).catch(() => []);
-    if (cl.length) html = `<h2 class="sec">${ico("users")} فصولي ${notToday ? "في آخر يوم دراسي" : "اليوم"} <small class="sub">${esc(fmtBoth(day))}</small></h2>${classesSummary(cl)}<div class="acts mt"><a class="btn sm sec" href="classes.html">تفاصيل فصولي</a></div>` + html;
+    if (cl.length) html = `<div class="row2"><h2 class="sec" style="margin:0">${ico("users")} فصولي <small class="sub">${esc(fmtBoth(day))}</small></h2><div class="pickbar" style="margin:0"><div><label for="cd">اليوم</label><input type="date" id="cd" value="${esc(day)}" max="${esc(meta.today)}"></div></div></div>${classesBlock(cl)}` + (html ? `<div class="mt">${html}</div>` : "");
   }
   if (!html) html = empty("inbox", "لا فصول ولا مهام مسندة إليك في انضباطي", "يُسند منسق الغياب فصول تسجيل الغياب أو التأخر من «إدارة التكليفات». راجعه إن كنت مكلفاً.");
   main.innerHTML = html;
+  if ($("#cd")) { $("#cd").onchange = (e) => { const u = new URLSearchParams(location.search); u.set("d", e.target.value); location.search = u; };
+    if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView({ block: "start" }); } }
   if ($("#abt")) {
     const SG = Object.fromEntries(meta.sections.map((x) => [x.id, x.grade]));
     const FG = $("#afg"), FS = $("#afs"), FT = $("#aft"); let shown = ABX;
@@ -91,7 +94,7 @@ const attModeTabs = (on) => `<nav class="modetabs" aria-label="نمط التحض
 
 async function attendanceWeek(main, c, meta) {
   const qs = new URLSearchParams(location.search), wend = meta.attendance?.weekend || [];
-  const h1 = $(".pagebar h1"), pd = $(".pagebar .pb-d"); if (h1) h1.textContent = "التحضير الأسبوعي"; if (pd) pd.textContent = "من الأحد إلى الخميس لجميع طلاب الفصل، مع إمكانية تعديل الأيام غير المثبتة"; document.title = "التحضير الأسبوعي – انضباطي";
+  const h1 = $("#shT") || $("#pbH"), pd = $("#shD") || $(".pagebar .pb-d"); if (h1) h1.textContent = "التحضير الأسبوعي"; if (pd) pd.textContent = "من الأحد إلى الخميس لجميع طلاب الفصل، مع إمكانية تعديل الأيام غير المثبتة"; document.title = "التحضير الأسبوعي – انضباطي";
   main.innerHTML = `${attModeTabs("week")}<div class="card"><div id="pick"></div>
     <div class="wkbar"><div class="acts"><button type="button" class="btn sm sec" id="wPrev">الأسبوع السابق</button><button type="button" class="btn sm sec" id="wNow">هذا الأسبوع</button><button type="button" class="btn sm sec" id="wNext">الأسبوع التالي</button></div>
     <div><label for="wDate">اختر أي تاريخ من الأسبوع</label><input type="date" id="wDate" max="${esc(meta.today)}"></div></div></div>
@@ -420,11 +423,9 @@ PAGES.assignments = () => boot("assignments.html", async (main) => {
 }, { role: "coord" });
 
 // ============================== الإعدادات ==============================
-PAGES.settings = () => boot("settings.html", async (main, c) => {
-  const list = [];
-  if (c.isCoord) list.push(["late", "إعدادات التأخر", "clock"], ["reasons", "أسباب التأخر", "list"], ["att", "إعدادات التحضير", "check"], ["exc", "الأعذار", "file"], ["rewards", "نقاط الانتظام", "star"]);
-  if (!list.length) { main.innerHTML = empty("gear", "لا إعدادات متاحة لدورك", ""); return; }
-  tabs(main, list, async (k, body) => {
+// ============================== إدارة البوابة ==============================
+// تبويباتها في الشريط الفرعي (SET_TABS في ind.js) بخطوات مرقمة؛ الصلاحيات والتكليفات صفحتان مستقلتان قبلها.
+async function setTab(k, body, c) {
     const meta = await rpc("ind_meta", { p_task: "view" });
     if (k === "late") {
       const L = meta.lateness;
@@ -444,10 +445,10 @@ PAGES.settings = () => boot("settings.html", async (main, c) => {
       body.innerHTML = `<div class="card"><div class="row2"><p class="sub" style="margin:0">«سبب آخر» يُلزم مدخل البيانات بكتابة السبب. السبب المستخدم لا يُحذف بل يُعطّل.</p><button class="btn sm" id="na">${ico("plus")}إضافة سبب</button></div>
         <div class="tw mt"><table class="tbl"><thead><tr><th>السبب</th><th>الترتيب</th><th>الاستخدام</th><th>الحالة</th><th></th></tr></thead><tbody>${R.map((r) => `<tr><td>${esc(r.name)}${r.is_other ? ' <span class="badge info">نص إلزامي</span>' : ""}</td><td class="mono">${r.sort_order}</td><td class="mono">${r.uses}</td><td>${r.is_active ? '<span class="badge ok">مفعّل</span>' : '<span class="badge">معطّل</span>'}</td><td><div class="acts"><button class="btn sm sec" data-ed="${r.id}">تعديل</button><button class="btn sm sec" data-tg="${r.id}">${r.is_active ? "تعطيل" : "تفعيل"}</button></div></td></tr>`).join("")}</tbody></table></div></div>`;
       const ed = (r) => { const md = modal(`<h3>${r ? "تعديل سبب" : "إضافة سبب"}</h3><label for="rn">الاسم</label><input id="rn" maxlength="80" value="${esc(r?.name || "")}"><label for="ro">الترتيب</label><input id="ro" type="number" value="${r?.sort_order ?? 50}"><p class="err" id="re"></p><div class="acts mt"><button class="btn" id="ok">حفظ</button><button class="btn sec" id="no">رجوع</button></div>`);
-        $("#no", md.el).onclick = md.close; $("#ok", md.el).onclick = async () => { try { await rpc("ind_reason_save", { p_id: r?.id || null, p_name: $("#rn", md.el).value, p_active: r ? r.is_active : true, p_sort: +$("#ro", md.el).value }); md.close(); toast("حُفظ"); $$("[data-t=reasons]")[0].click(); } catch (e) { $("#re", md.el).textContent = mapErr(e); } }; };
+        $("#no", md.el).onclick = md.close; $("#ok", md.el).onclick = async () => { try { await rpc("ind_reason_save", { p_id: r?.id || null, p_name: $("#rn", md.el).value, p_active: r ? r.is_active : true, p_sort: +$("#ro", md.el).value }); md.close(); toast("حُفظ"); $$("[data-t=late]")[0].click(); } catch (e) { $("#re", md.el).textContent = mapErr(e); } }; };
       $("#na").onclick = () => ed(null);
       $$("[data-ed]").forEach((b) => (b.onclick = () => ed(R.find((r) => r.id === b.dataset.ed))));
-      $$("[data-tg]").forEach((b) => (b.onclick = async () => { const r = R.find((x) => x.id === b.dataset.tg); try { await rpc("ind_reason_save", { p_id: r.id, p_name: r.name, p_active: !r.is_active, p_sort: r.sort_order }); $$("[data-t=reasons]")[0].click(); } catch (e) { toast(mapErr(e), true); } }));
+      $$("[data-tg]").forEach((b) => (b.onclick = async () => { const r = R.find((x) => x.id === b.dataset.tg); try { await rpc("ind_reason_save", { p_id: r.id, p_name: r.name, p_active: !r.is_active, p_sort: r.sort_order }); $$("[data-t=late]")[0].click(); } catch (e) { toast(mapErr(e), true); } }));
     }
     if (k === "att") {
       const A = meta.attendance, days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -478,6 +479,22 @@ PAGES.settings = () => boot("settings.html", async (main, c) => {
         try { await rpc("ind_set_reward_settings", { p: { enabled: $("#r1").checked, points: +$("#r2").value, lateness_blocks: $("#r3").checked } }); toast("حُفظت الإعدادات"); $$("[data-t=rewards]")[0].click(); } catch (e) { toast(mapErr(e), true); } };
       $$("[data-w]").forEach((b) => (b.onclick = async () => { try { const r = await rpc("ind_rewards_run", { p_day: b.dataset.w }); toast(r.skipped ? "الأسبوع غير مكتمل أو الاحتساب معطّل" : `مُنح ${r.awarded} طالباً`); $$("[data-t=rewards]")[0].click(); } catch (e) { toast(mapErr(e), true); } }));
     }
+  }
+PAGES.settings = () => boot("settings.html", async (main, c) => {
+  const list = SET_TABS.filter((t) => c.can(t[4]));
+  if (!list.length) { main.innerHTML = empty("gear", "لا إعدادات متاحة لدورك", ""); return; }
+  tabs(main, list, async (k, body) => {
+    document.querySelectorAll(".pk-admwrap").forEach((e) => e.remove());
+    if (k === "late") { body.innerHTML = `<div id="stL"></div><h3 class="sec">أسباب التأخر</h3><div id="stR"></div>`; await setTab("late", $("#stL", body), c); await setTab("reasons", $("#stR", body), c); return; }
+    if (k === "rules") return escTab("rules", body, c);
+    if (k === "msgs") { const st = await notifyStatus(); body.innerHTML = `<div id="stC"></div><h3 class="sec">قوالب الرسائل</h3><div id="stT"></div>`; await notifTab("config", $("#stC", body), c, st); await notifTab("templates", $("#stT", body), c, st); return; }
+    if (k === "ann") {
+      body.innerHTML = `<div id="stA"></div>`;
+      let can = false; try { const r = await sb.rpc("portal_can_manage_announcements", { p_scope: "portal", p_system: "indibati" }); can = r && r.data === true; } catch (_) {}
+      if (!can || !window.PK) { body.innerHTML = empty("bell", "لا تملك صلاحية إدارة إعلانات البوابة", "يمنحها مدير النواة الرقمية."); return; }
+      await PK.mountAdminSection({ sb, system: "indibati", central: false, after: "#stA" }); return;
+    }
+    return setTab(k, body, c);
   });
 }, { role: "admin" });
 
@@ -493,7 +510,7 @@ PAGES.perms = () => boot("perms.html", async (main, c) => {
     ${S.map((s) => `<tr data-n="${esc(s.name)}"><td><b>${esc(s.name)}</b><br><small>${esc(s.job_title || "")}${s.has_account ? "" : " · بلا حساب دخول"}</small></td>${roles.map((r) => `<td><input type="checkbox" aria-label="${ROLE[r]} – ${esc(s.name)}" data-sid="${s.id}" data-r="${r}" ${s.roles.includes(r) ? "checked" : ""}></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
   $("#rq").oninput = (e) => $$("tr[data-n]", body).forEach((tr) => (tr.hidden = !tr.dataset.n.includes(e.target.value.trim())));
   $$("[data-r]", body).forEach((x) => (x.onchange = async () => { try { await rpc("ind_set_role", { p_staff: x.dataset.sid, p_role: x.dataset.r, p_on: x.checked }); toast(x.checked ? "مُنح الدور" : "سُحب الدور"); } catch (e) { x.checked = !x.checked; toast(mapErr(e), true); } }));
-}, { role: "admin" });
+}, { role: "roles" });
 
 // ============================== سجل العمليات ==============================
 const ACT = { attendance_recorded: "تسجيل غياب", attendance_saved: "حفظ تحضير (الجميع حاضر)", attendance_modified: "تعديل غياب", lock: "تثبيت", relock: "إعادة تثبيت", unlock: "إلغاء تثبيت",
@@ -514,19 +531,12 @@ PAGES.audit = () => boot("audit.html", async (main) => {
 
 // ============================== فصولي (لوحة المعلم) ==============================
 // فصول المعلم ومواده من إسناد التدريس في النواة الرقمية؛ اطلاع فقط على غياب طلابها وتأخرهم.
-function classesSummary(cl) {
-  const st = (x) => (x.locked ? '<span class="badge ok">مثبت</span>' : x.saved ? '<span class="badge warn">محفوظ غير مثبت</span>' : '<span class="badge">لم يُحضَّر بعد</span>');
-  return `<div class="kgrid">${cl.map((x) => `<a class="kpi k${x.absent.length ? 5 : 4}" href="classes.html#c-${x.section_id}" style="text-decoration:none"><div class="ic">${ico("users")}</div><div><b>${esc(x.label)}</b><span>${x.absent.length} غائب · ${x.late.length} متأخر · ${st(x)}</span></div></a>`).join("")}</div>`;
-}
-PAGES.classes = () => boot("classes.html", async (main, c) => {
-  main.innerHTML = loading();
-  const meta = await rpc("ind_meta", { p_task: "view" }), qd = new URLSearchParams(location.search).get("d"), day = qd || lastSchoolDay(meta);
-  const cl = await rpc("ind_teacher_classes", { p_day: day });
-  if (!cl.length) { main.innerHTML = empty("users", "لا توجد فصول مسندة لك في النواة الرقمية", "تظهر هنا الفصول والمواد التي تدرّسها بعد إسنادها لك في «إسناد التدريس» بالنواة الرقمية."); return; }
+// «فصولي» صارت جزءاً من «مكتبي» (صفحة واحدة للمعلم)؛ الرابط القديم يحوّل
+PAGES.classes = () => location.replace("dashboard.html" + location.search + location.hash);
+function classesBlock(cl) {
   const tot = (k) => cl.reduce((a, x) => a + x[k].length, 0), stu = cl.reduce((a, x) => a + (+x.students || 0), 0);
   const st = (x) => (x.locked ? '<span class="badge ok">مثبت</span>' : x.saved ? '<span class="badge warn">محفوظ غير مثبت</span>' : '<span class="badge">لم يُحضَّر بعد</span>');
-  main.innerHTML = `<div class="pickbar"><div><label for="cd">اليوم</label><input type="date" id="cd" value="${esc(day)}" max="${esc(meta.today)}"></div><p class="sub" style="margin:0">${esc(fmtBoth(day))}</p></div>
-    <div class="kgrid mt">
+  return `<div class="kgrid mt">
       <div class="kpi k0"><div class="ic">${ico("users")}</div><div><b class="mono">${cl.length}</b><span>فصولي</span></div></div>
       <div class="kpi k1"><div class="ic">${ico("users")}</div><div><b class="mono">${stu}</b><span>طلابي</span></div></div>
       <div class="kpi k5"><div class="ic">${ico("x")}</div><div><b class="mono">${tot("absent")}</b><span>غائبون</span></div></div>
@@ -541,6 +551,4 @@ PAGES.classes = () => boot("classes.html", async (main, c) => {
         <div><h4 class="sec" style="margin:0 0 6px">الأكثر غياباً هذا العام</h4>${x.top.length ? `<div class="tw"><table class="tbl"><thead><tr><th>الطالب</th><th>أيام</th><th>بدون عذر</th></tr></thead><tbody>${x.top.map((a) => `<tr><td>${esc(a.name)}</td><td class="mono">${a.days}</td><td class="mono">${a.unexcused}</td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا طالب تجاوز يومين.</p>'}</div>
       </div></section>`).join("")}
     <p class="sub mt">اطلاع فقط. تسجيل الغياب والتأخر لمن كلّفه منسق الغياب، والأعذار والإجراءات من صلاحيات المنسق وشؤون الطلاب.</p>`;
-  $("#cd").onchange = (e) => { const u = new URLSearchParams(location.search); u.set("d", e.target.value); location.search = u; };
-  if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView({ block: "start" }); }
-}, { title: "فصولي", desc: "فصولي ومواد التدريس المسندة لي، وغياب طلابها وتأخرهم" });
+}

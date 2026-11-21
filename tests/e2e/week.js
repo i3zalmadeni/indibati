@@ -64,7 +64,7 @@ let fails = 0; const ok = (c, n) => { console.log((c ? "PASS: " : "FAIL: ") + n)
   p = await open(U(2), 1024, 1000); await p.goto(WURL); await p.waitForSelector("#pick");
   ok(!(await p.$(".modetabs")) && !(await p.$("#wk")), "المدخل لا يرى التحضير الأسبوعي");
   p = await open(U(1), 390, 844); await p.goto(WURL); await p.waitForSelector("#wk tbody tr");
-  ok((await p.textContent(".pagebar h1")).includes("الأسبوعي"), "الأسبوعي: عنوان الصفحة");
+  ok((await p.textContent("#shT")).includes("الأسبوعي"), "الأسبوعي: عنوان التبويب الفرعي");
   ok(await p.$eval(".tw", (e) => e.scrollWidth > e.clientWidth) && (await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), "الأسبوعي (جوال): الجدول يتمرر داخل بطاقته دون تمرير الصفحة");
   await shot(p, "26-week-mobile");
   await br.close(); console.log(fails ? `${fails} FAILED` : "ALL_WEEK_E2E_PASSED"); process.exit(fails ? 1 : 0);

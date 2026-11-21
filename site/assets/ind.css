@@ -140,3 +140,18 @@ table.wk{border-collapse:separate;border-spacing:0;width:100%;min-width:820px}
 .wk-c:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
 #werr .note.bad ul{margin:6px 0 0;padding-inline-start:20px}
 .note.bad{background:var(--c5b);color:var(--c5f)}
+
+/* نمط لوحة التحكم الموحد: أيقونة القسم في الشريط الأبيض، والشريط الفرعي، وعنوان التبويب الفرعي */
+.pb-t h1{display:flex;align-items:center;gap:10px}
+.pb-ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--brandsoft);flex:none}
+.pb-ic .ico{width:20px;height:20px;stroke:var(--brand2);margin:0}
+.sbar{background:var(--surface);border-bottom:1px solid var(--line)}
+.sbar .subnav{border-top:0}
+.sbar .subnav a .bdg{background:#f0b34a;color:#3b2a06;margin-inline-start:4px}
+.shd{padding-top:24px}
+.shd h2{margin:0;font-size:1.2rem;font-weight:800}
+.shd p{margin:4px 0 14px}
+main.solo{padding-top:24px}
+@media print{.sbar,.shd{display:none!important}}
+.sbar .subnav{justify-content:flex-start;gap:2px}
+.sbar .subnav a{padding:11px 10px;gap:6px}

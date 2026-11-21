@@ -162,34 +162,56 @@ function exportCSV(name, headers, rows) {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${name}-${todayISO()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-// ===== الهيكل والقائمة بحسب الدور =====
-// r: all | absence | lateness | coord | admin(portal) | oversee
-const NAV = [
-  ["dashboard.html", "مكتبي الإلكتروني", "grid", "ملخص اليوم ومهامك", "all"],
-  ["classes.html", "فصولي", "users", "فصولي ومواد التدريس المسندة لي، وغياب طلابها وتأخرهم", "mine"],
-  ["attendance.html", "التحضير", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence"],
-  ["locks.html", "التثبيت", "lock", "حالة التحضير والتثبيت لكل فصل وتاريخ", "absence"],
-  ["messages.html", "رسائل الغياب", "send", "إشعار أولياء أمور الغائبين برسالة فردية فيها رابط آمن لتقديم العذر", "coord"],
-  ["excuses.html", "الأعذار", "file", "أعذار الغياب المقدمة من أولياء الأمور ومراجعتها", "oversee"],
-  ["lateness.html", "التأخر", "clock", "تسجيل حالات التأخر الصباحي ومتابعتها", "lateness"],
-  ["student.html", "الملفات", "user", "سجل الطالب التراكمي: الغياب والتأخر والأعذار والإشعارات والإجراءات", "oversee"],
-  ["reports.html", "التقارير", "chart", "تقارير الحضور والغياب والتأخر والإشعارات والأعذار والإجراءات والنقاط، مع التصدير والطباعة", "oversee"],
-  ["escalations.html", "الإجراءات", "flag", "إشعارات الغياب النظامية وحدودها وطباعتها", "oversee"],
-  ["assignments.html", "التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord"],
-  ["audit.html", "السجل", "list", "كل عملية مسجلة بالمستخدم والوقت والقيم السابقة والجديدة", "admin"],
-  ["notifications.html", "الإشعارات", "bell", "سجل رسائل أولياء الأمور وقوالبها وإعدادات الربط", "oversee"],
-  ["perms.html", "الصلاحيات", "key", "أدوار المنسقين ووكلاء شؤون الطلاب ومديري البوابة", "admin"],
-  ["settings.html", "إدارة البوابة", "gear", "إعدادات التأخر والتحضير والأعذار والأسباب ونقاط الانتظام", "admin"],
+// ===== الهيكل والقائمة بحسب الدور (نمط لوحة التحكم الموحد) =====
+// الشريط الداكن: أقسام (SECTIONS)، والشريط الفرعي: صفحات القسم (NAV) أو تبويبات «إدارة البوابة» (SET_TABS).
+// r: all | absence | lateness | coord | admin(منسق أو مدير البوابة) | roles(مدير البوابة أو مدير النواة) | oversee
+const SECTIONS = [
+  ["home", "الرئيسية", "grid", "نظرة شاملة على الحضور والغياب والتأخر، مع التقارير وسجل العمليات"],
+  ["daily", "الحضور اليومي", "check", "تحضير الفصول ثم تثبيتها، ثم إشعار أولياء أمور الغائبين"],
+  ["late", "التأخر", "clock", "تسجيل حالات التأخر الصباحي ومتابعتها"],
+  ["exc", "الأعذار", "file", "أعذار الغياب المقدمة من أولياء الأمور ومراجعتها"],
+  ["follow", "متابعة الطلاب", "user", "الملف الانضباطي لكل طالب والإجراءات النظامية"],
+  ["admin", "إدارة البوابة", "gear", "إعدادات تُضبط في بداية العام بخطوات مرقمة، وتبقى متاحة للتعديل"],
 ];
-// شارات القائمة: عدد ما ينتظر العمل بجوار الصفحة
+// تبويبات «إدارة البوابة» داخل settings.html
+const SET_TABS = [
+  ["att", "التحضير والإجازات", "check", "أقصى مدة للتسجيل بأثر رجعي، وأيام الإجازة الأسبوعية", "coord"],
+  ["late", "التأخر وأسبابه", "clock", "بداية الدوام وطريقة احتساب التأخر، وأسباب التأخر", "coord"],
+  ["exc", "الأعذار", "file", "إلزام المرفق، ومهلة تقديم العذر، وصلاحية رابط ولي الأمر", "coord"],
+  ["rules", "الإجراءات النظامية", "flag", "حدود الإجراءات النظامية وطريقة احتسابها وتفعيلها", "admin"],
+  ["rewards", "نقاط الانتظام", "star", "نقاط الأسبوع الكامل دون غياب في «قيمي»", "coord"],
+  ["msgs", "رسائل أولياء الأمور", "send", "حالة الربط، والإشعارات الآلية، وقوالب الرسائل", "admin"],
+  ["ann", "الإعلانات", "bell", "إعلانات البوابة التي تظهر أعلى لوحة التحكم", "admin"],
+];
+// [الرابط، الاسم في الشريط الفرعي، الأيقونة، الوصف، الدور، القسم]
+const NAV = [
+  ["dashboard.html", "نظرة عامة", "grid", "ملخص اليوم: الفصول غير المكتملة وغير المثبتة، والإحصائيات، والغائبون", "all", "home"],
+  ["reports.html", "التقارير", "chart", "تقارير الحضور والغياب والتأخر والإشعارات والأعذار والإجراءات والنقاط، مع التصدير والطباعة", "oversee", "home"],
+  ["audit.html", "سجل العمليات", "list", "كل عملية مسجلة بالمستخدم والوقت والقيم السابقة والجديدة", "admin", "home"],
+  ["attendance.html", "التحضير", "check", "اختر الفصل والتاريخ ثم حدد الغائبين فقط", "absence", "daily"],
+  ["locks.html", "التثبيت", "lock", "حالة التحضير والتثبيت لكل فصل وتاريخ", "absence", "daily"],
+  ["messages.html", "رسائل الغياب", "send", "إشعار أولياء أمور الغائبين برسالة فردية فيها رابط آمن لتقديم العذر", "coord", "daily"],
+  ["notifications.html", "سجل الرسائل", "list", "سجل رسائل أولياء الأمور وحالاتها", "oversee", "daily"],
+  ["lateness.html", "التأخر", "clock", "تسجيل حالات التأخر الصباحي ومتابعتها", "lateness", "late"],
+  ["excuses.html", "الأعذار", "file", "أعذار الغياب المقدمة من أولياء الأمور ومراجعتها", "oversee", "exc"],
+  ["student.html", "الملفات", "user", "سجل الطالب التراكمي: الغياب والتأخر والأعذار والإشعارات والإجراءات", "oversee", "follow"],
+  ["escalations.html", "الإجراءات النظامية", "flag", "الإجراءات الصادرة عند بلوغ حدود الغياب، وطباعتها", "oversee", "follow"],
+  ["perms.html", "الصلاحيات", "key", "أدوار المنسقين ووكلاء شؤون الطلاب ومديري البوابة", "roles", "admin"],
+  ["assignments.html", "التكليفات", "users", "إسناد فصول الغياب والتأخر لمدخلي البيانات", "coord", "admin"],
+  ...SET_TABS.map(([k, n, i, d, r]) => ["settings.html?tab=" + k, n, i, d, r, "admin"]),
+];
+// شارات الأعداد (استثناء معتمد في انضباطي): على القسم في الشريط الداكن، وعلى الصفحة في الشريط الفرعي
 const NAV_BADGE = { "attendance.html": ["unsaved", "فصول لم يُحضَّر لها اليوم"], "locks.html": ["unlocked", "فصول حُضّرت ولم تُثبَّت"], "excuses.html": ["excuses", "أعذار لم يُبت فيها"] };
 async function navBadges() {
   let n; try { n = await rpc("ind_nav_counts"); } catch (_) { return; }
   if (!n || n.error) return;
+  const sec = {}, put = (a, v, t) => a && v > 0 && a.insertAdjacentHTML("beforeend", `<span class="bdg" title="${esc(t)}" aria-label="${esc(t)}: ${v}">${v}</span>`);
   for (const [h, [k, t]] of Object.entries(NAV_BADGE)) {
-    const a = document.querySelector(`.dnav-in a[href="${h}"]`), v = +n[k] || 0;
-    if (a && v > 0) a.insertAdjacentHTML("beforeend", `<span class="bdg" title="${esc(t)}" aria-label="${esc(t)}: ${v}">${v}</span>`);
+    const it = (window.__indNav || []).find((x) => x[0] === h), v = +n[k] || 0; if (!it || !v) continue;
+    put(document.querySelector(`.sbar a[href="${h}"]`), v, t);
+    (sec[it[5]] = sec[it[5]] || []).push([v, t]);
   }
+  for (const [s, L] of Object.entries(sec)) put(document.querySelector(`.dnav-in a[data-sec="${s}"]`), L.reduce((a, x) => a + x[0], 0), L.map((x) => `${x[1]}: ${x[0]}`).join(" · "));
 }
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
@@ -211,23 +233,36 @@ async function boot(page, render, o = {}) {
   if (ctx.canSwitch && ctx.view === "teacher") window.__indView = "teacher";
   if (ctx.canSwitch && ctx.view === "teacher") Object.assign(ctx, { isAdmin: false, isCoord: false, isPortal: false, isAffairs: false, oversee: false, absence: tasks.has("absence"), lateness: tasks.has("lateness"), role: "معلم" });
   window.__ind = ctx;
-  // «فصولي» للمعلم (وفي لوحة المعلم)، والتثبيت للمنسق وحده (0307) فلا يظهر في لوحة المعلم
-  const ok = (r, h) => (r === "mine" ? !ctx.oversee : h === "locks.html" && ctx.canSwitch && ctx.view === "teacher" ? false : ok0(r));
-  const ok0 = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal));
+  // التثبيت للمنسق وحده (0307) فلا يظهر في لوحة المعلم
+  const ok0 = (r) => r === "all" || (r === "absence" && (ctx.absence || ctx.oversee)) || (r === "lateness" && (ctx.lateness || ctx.oversee)) || (r === "coord" && ctx.isCoord) || (r === "oversee" && ctx.oversee) || (r === "admin" && (ctx.isCoord || ctx.isPortal)) || (r === "roles" && (ctx.isPortal || ctx.isAdmin));
+  const ok = (r, h) => (h === "locks.html" && ctx.canSwitch && ctx.view === "teacher" ? false : ok0(r));
+  ctx.can = ok0;
   if ((o.role && !ok(o.role, page)) || (page === "locks.html" && !ok("absence", page))) { location.replace("dashboard.html"); return; }
-  const FULL = { "reports.html": "التقارير", "attendance.html": "التحضير اليومي", "student.html": "الملف الانضباطي", "notifications.html": "مركز الإشعارات", "messages.html": "رسائل الغياب لأولياء الأمور", "escalations.html": "الإجراءات النظامية", "assignments.html": "إدارة التكليفات", "audit.html": "سجل العمليات", "perms.html": "الصلاحيات", "settings.html": "إدارة البوابة" };
-  const cur0 = NAV.find((n) => n[0] === page), cur = cur0 ? [cur0[0], FULL[page] || cur0[1], cur0[2], cur0[3]] : [page, o.title || "لوحة التحكم", "grid", o.desc || ""];
+  const vis = NAV.filter((n) => ok(n[4], n[0])); window.__indNav = vis;
+  const qTab = new URLSearchParams(location.search).get("tab");
+  const cur = page === "settings.html" ? vis.find((n) => n[0] === "settings.html?tab=" + qTab) || vis.find((n) => n[0].startsWith("settings.html")) : vis.find((n) => n[0] === page);
+  const secKey = cur ? cur[5] : o.section || null, sec = SECTIONS.find((x) => x[0] === secKey);
+  const secItems = (k) => vis.filter((n) => n[5] === k);
+  const secName = (k) => { const S = SECTIONS.find((x) => x[0] === k), it = secItems(k); return k === "home" ? (ctx.oversee ? "الرئيسية" : "مكتبي") : it.length === 1 ? it[0][1] : S[1]; };
+  const subs = secKey ? secItems(secKey) : [], hasSub = subs.length > 1;
+  const subLabel = (n) => (n[0] === "dashboard.html" ? (ctx.oversee ? "نظرة عامة" : "مكتبي") : n[1]);
+  const isOn = (n) => (cur && n[0] === cur[0]);
+  const pbTitle = sec ? secName(secKey) : o.title || "لوحة التحكم";
+  const pbDesc = hasSub ? sec[3] : cur && cur[0] === "dashboard.html" && !ctx.oversee ? "فصولي ومهامي اليوم، وغياب طلاب فصولي وتأخرهم" : cur ? cur[3] : o.desc || "";
+  const pbIcon = sec ? (secItems(secKey).length === 1 && secKey !== "home" ? secItems(secKey)[0][2] : sec[2]) : "grid";
   shell.innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a><span class="vdiv"></span>${coreBlock()}${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
-     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${NAV.filter((n) => ok(n[4], n[0])).map(([h, n, e, t]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("")}</div>
+     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${SECTIONS.filter(([k]) => secItems(k).length).map(([k, , i]) => { const it = secItems(k), on = k === secKey; return `<a href="${it[0][0]}" data-sec="${k}" title="${esc(k === "home" || it.length > 1 ? SECTIONS.find((x) => x[0] === k)[3] : it[0][3])}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}>${ico(it.length === 1 && k !== "home" ? it[0][2] : i)}${esc(secName(k))}</a>`; }).join("")}</div>
      <div class="dwho">${ubBarHTML(who.name, "dashboard.html")}</div></div></div></header>
-     <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
+     <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${esc(ctx.role)}</small><h1><span class="pb-ic">${ico(pbIcon)}</span><span id="pbH">${esc(pbTitle)}</span></h1></div><p class="pb-d">${esc(pbDesc)}</p>
      <div class="pb-u"><span id="pbTime">${esc(fmtHijri(todayISO()))}</span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
-     <main class="wrap" id="main"></main>${footerHTML}`;
+     ${hasSub ? `<div class="sbar" role="navigation" aria-label="${esc(secName(secKey))}"><div class="wrap"><div class="subnav">${subs.map((n, i) => { const t = n[0].startsWith("settings.html?tab=") ? n[0].split("=")[1] : ""; return `<a href="${n[0]}" title="${esc(n[3])}" data-n="${esc(subLabel(n))}" data-d="${esc(n[3])}"${t ? ` data-t="${t}"` : ""} class="${isOn(n) ? "on" : ""}" ${isOn(n) ? 'aria-current="page"' : ""}>${ico(n[2])}${secKey === "admin" ? i + 1 + ". " : ""}${esc(subLabel(n))}</a>`; }).join("")}</div></div></div>
+     <div class="wrap shd"><h2 id="shT">${esc(cur ? subLabel(cur) : "")}</h2><p class="sub" id="shD">${esc(cur ? cur[3] : "")}</p></div>` : ""}
+     <main class="wrap${hasSub ? "" : " solo"}" id="main"></main>${footerHTML}`;
+  { const a = document.querySelector(".sbar a.on"); if (a) a.scrollIntoView({ block: "nearest", inline: "center" }); }
   bindNav();
   navBadges();
-  if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "indibati", central: false, after: "#main" });
   // قائمة الجوال: زر «القائمة» يفتح لائحة عمودية بكل التبويبات (على الشاشات العريضة يبقى الشريط الأفقي كما هو)
   (() => { const d = document.querySelector(".dnav"), b = document.getElementById("dmb"); if (!d || !b) return;
     const set = (o) => { d.classList.toggle("open", o); b.setAttribute("aria-expanded", o); };
@@ -240,7 +275,7 @@ async function boot(page, render, o = {}) {
   if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
     PK.mountAnnouncements({ sb, system: "indibati", page: page === "dashboard.html" ? "home" : "all", before: ".pagebar" });
     if (page === "dashboard.html") PK.welcome("#main", { mode: "before", sb, name: who.name, role: ctx.role }); }
-  document.title = cur[1] + " – انضباطي";
+  document.title = (cur && hasSub ? subLabel(cur) : pbTitle) + " – انضباطي";
   $("#pbRefresh").onclick = () => location.reload();
   $("#out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: ما ينتظر العمل اليوم (التحضير، التثبيت، الأعذار) بحسب صلاحية المستخدم، و«مشاهدة الكل» مركز الإشعارات لمن يصل إليه
@@ -256,13 +291,16 @@ async function boot(page, render, o = {}) {
   const main = $("#main");
   try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = `<div class="card"><p class="err">تعذر تحميل الصفحة: ${esc(mapErr(e))}</p><button class="btn sec" onclick="location.reload()">إعادة المحاولة</button></div>`; }
 }
-// تبويبات داخل الصفحة
+// تبويبات داخل الصفحة. إن كانت تبويباتها في الشريط الفرعي (إدارة البوابة) تُربط بها ولا يُرسم شريط ثانٍ
 function tabs(host, list, onTab) {
   const q = new URLSearchParams(location.search).get("tab"); let cur = list.some((t) => t[0] === q) ? q : list[0][0];
-  host.innerHTML = `<div class="subnav card" role="tablist" style="padding:0 6px;margin-bottom:12px">${list.map(([k, n, i]) => `<a href="?tab=${k}" role="tab" data-t="${k}">${ico(i)}${esc(n)}</a>`).join("")}</div><div id="tabbody"></div>`;
-  const body = $("#tabbody", host);
-  const go = async (k) => { cur = k; $$("[data-t]", host).forEach((a) => { const on = a.dataset.t === k; a.classList.toggle("on", on); a.setAttribute("aria-selected", on); });
+  const bar = document.querySelector(".sbar"), linked = !!bar && list.every((t) => bar.querySelector(`[data-t="${t[0]}"]`));
+  if (linked) host.innerHTML = `<div id="tabbody"></div>`;
+  else host.innerHTML = `<div class="subnav card" role="tablist" style="padding:0 6px;margin-bottom:12px">${list.map(([k, n, i]) => `<a href="?tab=${k}" role="tab" data-t="${k}">${ico(i)}${esc(n)}</a>`).join("")}</div><div id="tabbody"></div>`;
+  const scope = linked ? bar : host, body = $("#tabbody", host);
+  const go = async (k) => { cur = k; $$("[data-t]", scope).forEach((a) => { const on = a.dataset.t === k; a.classList.toggle("on", on); linked ? (on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")) : a.setAttribute("aria-selected", on);
+      if (on && linked) { $("#shT").textContent = a.dataset.n; $("#shD").textContent = a.dataset.d; document.title = a.dataset.n + " – انضباطي"; } });
     body.innerHTML = loading(); try { await onTab(k, body); } catch (e) { body.innerHTML = `<p class="err">${esc(mapErr(e))}</p>`; } };
-  $$("[data-t]", host).forEach((a) => (a.onclick = (e) => { e.preventDefault(); history.replaceState(null, "", "?tab=" + a.dataset.t); go(a.dataset.t); }));
+  $$("[data-t]", scope).forEach((a) => (a.onclick = (e) => { e.preventDefault(); history.replaceState(null, "", "?tab=" + a.dataset.t); go(a.dataset.t); }));
   go(cur);
 }
